@@ -1,4 +1,4 @@
-# Pilot results: dense AdamW vs proxy SRA
+# Pilot results: dense AdamW vs theory-derived structural contraction
 
 These experiments are implementation audits, not evidence for a final algorithmic claim. The controller is intentionally conservative and test labels are never used in a contraction decision.
 
@@ -14,9 +14,19 @@ was `7.33e-17`. This is a machine-precision audit of the exact finite-horizon id
 
 ## 2. Exact quadratic onset audit
 
-The rank-one quadratic teacher model gives a sharper test of **when** contraction should begin. With `theta=1`, `gamma=0.5`, the exact dynamic-BBP crossing time is `0.08328`. We compare a rank-one direction selected from the isotropic Wishart edge at initialization with the top covariance direction at `3 x tau_BBP = 0.24985`.
+The rank-one quadratic teacher model gives the cleanest test of **when** contraction should begin. With `theta=1` and `gamma=0.5`, the exact edge-strength equation
 
-The theory proves that after rank-one contraction the target-overlap odds satisfy
+\[
+\chi_{\theta,\gamma}(\tau)=1
+\]
+
+gives
+
+\[
+\boxed{\tau_{\rm BBP}=0.0927600431.}
+\]
+
+The same model proves that after a rank-one structural contraction the target-overlap odds obey
 
 \[
 \frac{1-\omega_{t+h}}{\omega_{t+h}}
@@ -24,52 +34,77 @@ The theory proves that after rank-one contraction the target-overlap odds satisf
 \frac{1-\omega_t}{\omega_t}e^{-4\theta h}.
 \]
 
-Thus a direction with only `O(1/d)` teacher overlap pays an additional `log(d)/(4 theta)` discovery delay, whereas a detached teacher outlier with order-one overlap does not.
+Hence a blind direction with `O(1/d)` teacher overlap pays a logarithmic discovery delay, while a post-separation teacher outlier has order-one overlap.
 
-Finite-dimensional audit, 12 seeds per dimension:
+A fresh exact-flow audit used dimensions 32, 64, 128, 256 and 12 seeds per dimension. The post-BBP checkpoint was `2 * tau_BBP`.
 
-| d | median overlap at initialization | median overlap after `3 x tau_BBP` | extra time to 90% overlap: early | extra time: post-BBP |
-|---:|---:|---:|---:|---:|
-| 32 | 0.0161 | 0.8358 | 1.579 | 0.143 |
-| 64 | 0.0031 | 0.8243 | 1.998 | 0.163 |
-| 128 | 0.0033 | 0.8574 | 1.977 | 0.101 |
-| 256 | 0.0027 | 0.8442 | 2.024 | 0.127 |
+| d | mean initial overlap | `d * mean initial overlap` | mean overlap at `2 tau_BBP` | mean extra time to 90% overlap: blind | post-BBP | delay reduction |
+|---:|---:|---:|---:|---:|---:|---:|
+| 32  | 0.0281 | 0.898 | 0.7219 | 1.817 | 0.298 | 1.519 |
+| 64  | 0.0187 | 1.194 | 0.6954 | 1.994 | 0.338 | 1.656 |
+| 128 | 0.00557 | 0.713 | 0.6855 | 2.246 | 0.349 | 1.897 |
+| 256 | 0.00451 | 1.156 | 0.7057 | 2.124 | 0.330 | 1.795 |
 
-The point is not the exact finite-d slope. It is the large separation between a blind pre-discovery contraction and a contraction performed after the target direction is spectrally resolved.
+This audit now matches the exact Riccati flow implemented in `src/neural_net/quadratic_phase.py`. The important result is not a fitted slope: it is the order-one post-separation target overlap versus the `O(1/d)` blind overlap and the resulting large gap in target-discovery time.
 
-## 3. Real-data CPU pilot
+## 3. Controlled real-data CPU pilot
 
 ### Setup
 
 - Two-hidden-layer tanh MLP.
 - Initial last-hidden width: 64.
 - 200 AdamW updates.
-- Candidate contraction checkpoints every 20 updates.
-- Fixed disjoint train/probe/test split.
+- Candidate checkpoints every 20 updates.
+- Fixed disjoint 60/20/20 train/probe/test split.
 - **Train data** construct the target-aware neuron ordering.
-- The independent **probe** validates accessibility, frozen-readout MSE, and subspace persistence.
+- The independent **probe** validates current accessibility, frozen-readout MSE, and subspace persistence.
 - The **test set** is ex-post only.
 - Four seeds per dataset.
-- After contraction the final linear readout is refit by ridge on training features, because this is the action covered by the final-hidden-span theorem.
-- A dense readout-refit control is also run from the same checkpoint so that a Freeze-and-Solve benefit is not falsely attributed to contraction.
+- The adaptive branch physically contracts the final hidden layer and then refits the linear readout by ridge.
+- At the same checkpoint two full-width controls are forked from exactly the same pre-contraction state:
+  1. **optimizer-reset control:** fresh AdamW state, no readout solve;
+  2. **dense readout-refit control:** same ridge solve as the adaptive branch, but no structural contraction.
 
-The proxy controller requires two consecutive checkpoints with resolved-subspace speed below `0.006`, permits at most `0.01` accessibility loss and `0.01` probe-MSE increase, then physically contracts the final hidden layer to a neuron subset.
+The second control is essential: it isolates contraction from the already-known value of Freeze-and-Solve / readout refitting.
 
-### Current results
+### Results
 
-| Dataset | Runs | Contracted | Dense test MSE | SRA test MSE | Final parameter reduction | Active-parameter-step saving | Wall-clock ratio incl. controller/action |
-|---|---:|---:|---:|---:|---:|---:|---:|
-| Digits | 4 | 4/4 | 0.07033 | 0.07034 | 14.96% | 2.83% | 1.53x |
-| Cancer | 4 | 0/4 | 0.17047 | 0.17047 | 0% | 0% | 0.82x |
+| Dataset | Runs | Contracted | Dense MSE | Adaptive MSE | Dense readout-refit MSE | Adaptive minus dense-refit | Final parameter reduction | Active-param-step saving | Wall-clock ratio incl. controller |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Digits | 4 | 4/4 | 0.07033 | 0.06860 | **0.06665** | **+0.00195** | 14.96% | 2.83% | **1.72x** |
+| Cancer | 4 | 0/4 | 0.17047 | 0.17047 | n/a | n/a | 0% | 0% | **1.33x** |
 
-### Interpretation
+Digits contraction checkpoints were 140, 140, 160, and 180; final last-hidden widths were 48, 56, 44, and 32 respectively.
 
-1. **The current contraction is performance-neutral on average, not better.** After aligning the implementation with the theory by refitting the readout, mean Digits test MSE is essentially identical to dense AdamW. Individual seeds remain heterogeneous. There is no accuracy-improvement claim.
-2. **The decision rule is not trivially aggressive.** It contracts all four Digits runs but refuses to contract Cancer because the resolved feature subspace remains above the preset motion threshold.
-3. **The structural contraction is real.** Final Digits parameter count falls by about 15%. Because onset is late (steps 140--180), cumulative active-parameter-update saving is only about 2.8%.
-4. **The current controller loses on wall-clock.** Probe/SVD/ridge overhead plus late contraction produces about `1.53x` the dense CPU wall-clock on Digits. This falsifies any present claim of compute efficiency.
-5. The Cancer wall-clock ratio below one is ordinary timing noise because no contraction occurred; it is not a speedup.
+Seed-level comparison on Digits:
 
-## What must improve before a serious empirical claim
+| Seed | contraction step | width | Dense | Adaptive | Dense + readout refit | Adaptive - refit |
+|---:|---:|---:|---:|---:|---:|---:|
+| 0 | 160 | 44 | 0.05535 | 0.04935 | 0.05059 | -0.00123 |
+| 1 | 140 | 48 | 0.05683 | 0.05232 | 0.04823 | +0.00409 |
+| 2 | 140 | 56 | 0.08040 | 0.06519 | 0.06641 | -0.00123 |
+| 3 | 180 | 32 | 0.08872 | 0.10754 | 0.10138 | +0.00617 |
 
-The decisive quantity is the total risk/accuracy versus **charged compute** frontier, not final parameter count. The next implementation must therefore reduce state-estimation cost (small fixed reservoirs, randomized low-rank updates), derive an earlier but safe onset rule from the curvature/persistence theorem, and move to structural units whose removal creates large real FLOP savings. It must then beat dense AdamW and strong structured sparse/rank baselines on paired, compute-matched experiments.
+### What the controlled pilot says
+
+1. **The earlier apparent benefit over dense AdamW was not a clean contraction effect.** Once the same ridge-readout action is given to a full-width control, dense readout-refit is better on average (`0.06665` vs `0.06860`). With four seeds this is only a diagnostic, not a statistical conclusion, but it removes any present claim that contraction improves accuracy.
+2. **Contraction remains approximately competitive in three of four seeds, but one aggressive contraction is clearly harmful.** Seed 3 contracts to width 32 at step 180 and loses to both dense and dense-refit. The onset/size rule still needs work.
+3. **The controller is too expensive.** It saves only `2.83%` of active parameter-steps because contraction happens late, while total CPU time including diagnostics is `1.72x` dense on Digits. This is a clean negative compute result.
+4. **Cancer exposes a theoretical bug in the proxy rule.** Full-span empirical accessibility is already near one, yet the fixed rank-8 principal-angle gate remains active because weak/unresolved feature directions continue to rotate. The endogenous spectral theory says unresolved bulk eigenvectors should not be individually trusted. Measuring total rank-8 motion can therefore block contraction for the wrong reason.
+5. **The finite-horizon feature-value proxy was informative but not yet a certificate.** At Digits contraction times the constant-speed accessibility-gain proxy remained around 0.029--0.041; on Cancer it was typically below 0.001 because accessibility was already saturated. This is another sign that the current hard speed gate and the target-value object are misaligned.
+
+## 4. Design correction implied by the evidence
+
+The next controller should not ask whether an arbitrary fixed-rank hidden subspace has stopped moving. It should ask whether **resolved target-relevant geometry still has material reachable value**.
+
+Three changes follow directly from the theory:
+
+1. **Resolved-subspace motion only.** Estimate motion only on modes that are empirically resolved above a null/bulk threshold; aggregate the unresolved bulk rather than tracking its individual eigenvectors.
+2. **Target-value gate.** Combine current unresolved target mass with a finite-horizon motion envelope. A representation can rotate rapidly in nuisance directions while having almost no remaining target value.
+3. **Contraction magnitude from value budget.** Choose the smallest structural model whose estimated finite-horizon deletion cost plus structural-transfer error is below a predeclared risk budget, rather than jumping to the first subset that passes current probe risk.
+
+The present SRA implementation is therefore retained as a falsified first proxy, not promoted to the final algorithm.
+
+## 5. What must happen before a serious empirical claim
+
+The decisive quantity remains test performance versus **charged compute**. The next stage must use cheaper state estimation (small fixed reservoirs / randomized low-rank updates), compare explicitly against EPI because it is the closest prior work on pruning onset, and move to structured units whose removal creates substantial real FLOP savings. A larger experiment is justified only after the revised target-value controller beats this first proxy on the same small controlled suite.
