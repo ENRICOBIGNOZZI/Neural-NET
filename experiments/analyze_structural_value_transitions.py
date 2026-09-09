@@ -74,7 +74,7 @@ def main():
             "future_accessibility_gain_proxy",
             "saturation_ceiling",
             "effective_rank",
-            "current_dense_probe_mse",
+            "current_dense_refit_probe_mse",
             "current_probe_damage",
             "fraction_removed",
         ],
