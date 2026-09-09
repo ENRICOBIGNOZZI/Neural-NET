@@ -1,0 +1,90 @@
+\section{Finite-sample observability of structural damage}
+The population master theorem is useful only if the risk price of a structural action can be resolved from data. The first counterfactual audit shows that this is not automatic: when the structural effect is small, two finite evaluation samples can even disagree on its sign. The correct finite-sample object is therefore the \emph{paired} loss difference, not two separately estimated risks.
+
+Fix a checkpoint and a finite candidate family of structural actions $S_1,\ldots,S_M$. For candidate $m$, let $f_m$ denote the predictor obtained after the declared contraction/readout/training protocol over horizon $H$, and let $f_0$ denote the matched dense continuation. Assume these predictors are constructed without using an independent probe $\mathcal P=\{Z_i\}_{i=1}^n$. Let $\ell_B\in[0,B]$ be a bounded or clipped evaluation loss and define
+\[
+Z_{i,m}:=\ell_B(f_m,Z_i)-\ell_B(f_0,Z_i)\in[-B,B].
+\]
+The population structural damage and its paired probe estimate are
+\[
+D_m:=\mathbb E Z_{i,m},
+\qquad
+\widehat D_m:=\frac1n\sum_{i=1}^n Z_{i,m}.
+\]
+Let
+\[
+\widehat v_m:=\frac1{n-1}\sum_{i=1}^n(Z_{i,m}-\widehat D_m)^2
+\]
+be the empirical variance of the paired differences.
+
+\begin{theorem}[Uniform paired empirical-Bernstein structural-damage bound]\label{thm:paired-damage}
+Suppose $n\ge2$. With probability at least $1-\delta$ over the independent probe, simultaneously for all $m=1,\ldots,M$,
+\[
+\boxed{
+D_m
+\le
+\widehat D_m
++
+\sqrt{\frac{2\widehat v_m\log(2M/\delta)}{n}}
++
+\frac{14B\log(2M/\delta)}{3(n-1)}.
+}
+\]
+The same bound applied to $-Z_{i,m}$ gives a simultaneous two-sided confidence interval with the corresponding union-bound adjustment.
+\end{theorem}
+
+\begin{proof}
+For each $m$, transform the paired variable to
+\[
+Y_{i,m}:=\frac{Z_{i,m}+B}{2B}\in[0,1].
+\]
+Its empirical variance is $\widehat v_m/(4B^2)$. The empirical Bernstein inequality of Maurer and Pontil gives, with failure probability $\delta/M$,
+\[
+\mathbb E Y_m
+\le
+\overline Y_m
++
+\sqrt{\frac{2\widehat{\mathrm{Var}}(Y_m)\log(2M/\delta)}{n}}
++
+\frac{7\log(2M/\delta)}{3(n-1)}.
+\]
+Multiplying by $2B$ and subtracting $B$ yields the displayed inequality. A union bound over $m$ completes the proof.
+\end{proof}
+
+\begin{corollary}[Finite-sample safe structural action]\label{cor:paired-safe}
+Let $b_m\ge0$ be a predeclared admissible population risk budget for candidate $m$, possibly equal to its risk-equivalent compute value. Define
+\[
+U_m
+:=
+\widehat D_m
++
+\sqrt{\frac{2\widehat v_m\log(2M/\delta)}{n}}
++
+\frac{14B\log(2M/\delta)}{3(n-1)}.
+\]
+On the event of Theorem~\ref{thm:paired-damage}, every candidate satisfying
+\[
+\boxed{U_m\le b_m}
+\]
+has population structural damage $D_m\le b_m$. In particular, if $b_m=\tau\Delta C_m$ is the risk-equivalent value of its measured future compute saving, then $U_m<\tau\Delta C_m$ is a finite-sample sufficient condition for compute-aware dominance among the declared candidate continuations.
+\end{corollary}
+
+\begin{proof}
+Immediate from Theorem~\ref{thm:paired-damage} and the definition of $b_m$. The compute-aware specialization substitutes the same risk/compute budget used in Corollary~\ref{cor:compute-dominance}.
+\end{proof}
+
+\begin{remark}[Why pairing matters]
+The dense and reduced predictors are evaluated on the same examples. The variance entering the certificate is therefore
+\[
+\mathrm{Var}\!\left(\ell_B(f_m,Z)-\ell_B(f_0,Z)\right),
+\]
+not the sum of two unrelated risk-estimation variances. When the two predictors make highly correlated errors, this paired variance can be much smaller. The structural-decision problem should exploit that cancellation.
+\end{remark}
+
+\begin{remark}[Why a good probe forecaster can still be useless]
+A model may predict $\widehat D_m$ accurately across checkpoints while $\widehat D_m$ itself is too noisy to resolve $D_m$. The relevant decision object is therefore an upper confidence bound, not point-prediction $R^2$. This distinction is exactly what the small development audit exposed.
+\end{remark}
+
+\begin{remark}[Adaptive use of the probe]
+The theorem conditions on a candidate family independent of the probe. If the same probe is used to alter future network parameters or repeatedly construct new candidates, that independence is lost. The fresh-probe oracle in the next section is one clean remedy; cross-fitting, stability, or reusable-holdout arguments are alternatives.
+\end{remark}
