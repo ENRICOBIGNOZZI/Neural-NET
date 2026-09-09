@@ -18,13 +18,13 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -e '.[dev]'
-      - name: Audit paired structural-damage UCB coverage
+      - name: Audit paired and localized structural-damage UCB coverage
         run: >-
           python experiments/run_damage_ucb_coverage.py
           --seeds 0 1
-          --population-n 30000
+          --population-n 50000
           --repetitions 100
-          --probe-sizes 64 128 256 512
+          --probe-sizes 64 128 256 512 1024 2048
       - name: Upload coverage audit
         uses: actions/upload-artifact@v4
         with:
