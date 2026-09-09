@@ -74,7 +74,7 @@ V^{\rm rep}_{t,H}
 A recent observed target-angle or Grassmannian speed may be inserted as a forecast, but then the quantity is a \emph{proxy}, not a certificate. The no-universal-finite-jet result from the endogenous spectral theory is relevant here: current local derivatives alone cannot provide an architecture-free exact bound on all future accelerations of the learned geometry.
 
 \section{Algorithm derived from the theory}
-The theoretical controller has four gates. At sparse checkpoints, estimate a stable target-weighted prediction/representation state on an independent probe.
+The theoretical controller has five gates. At sparse checkpoints, estimate a stable target-weighted prediction/representation state and compare a finite family of structural actions. The gates are deliberately ordered: a candidate that fails an early, cheap gate never reaches the more expensive counterfactual checks.
 
 \paragraph{Gate A: current finite-horizon mode value.}
 For an ideal fixed-geometry mode, use
@@ -82,7 +82,7 @@ For an ideal fixed-geometry mode, use
 \widehat V_j(H)=\frac12\widehat a_j^2
 \left(1-e^{-2\widehat\mu_jH}\right).
 \]
-For a structural candidate (e.g. neuron subset), directly measure the change in frozen-readout probe risk and target accessibility. Eigenvalue magnitude by itself is never sufficient.
+For a structural candidate (e.g. neuron subset), measure its current target-accessibility loss and matched frozen-readout distortion. Eigenvalue magnitude by itself is never sufficient.
 
 \paragraph{Gate B: future discovery value.}
 Do not track arbitrary individual bulk eigenvectors. First define a \emph{resolved} spectral cluster by a predeclared null/edge rule or another stability-certified cluster criterion. Measure its target accessibility and target-angle progress. Use, in decreasing order of rigor:
@@ -95,19 +95,36 @@ Do not track arbitrary individual bulk eigenvectors. First define a \emph{resolv
 A large rotation confined to unresolved nuisance directions is not a reason to keep the full network dense.
 
 \paragraph{Gate C: structural realizability.}
-Require a small structural approximation term $\delta$ in Theorem~\ref{thm:structural-transfer}. For the final hidden layer this can be implemented by rank-revealing or target-aware neuron subset selection followed by the same readout solve in both the reduced branch and the full-width control.
+Require a small structural approximation term $\delta$ in Theorem~\ref{thm:structural-transfer}. For the final hidden layer this can be implemented by rank-revealing or target-aware neuron subset selection followed by the same readout solve in both the reduced branch and the full-width control. For an internal nonlinear layer, no spectral action is declared realizable until a channel/head/rank deletion is shown to approximate the desired kept parameter cluster.
 
-\paragraph{Gate D: compute value.}
-Delete only if an upper bound or calibrated UCB on retained finite-horizon statistical value is below the measured risk-equivalent compute saved. All diagnostic overhead must be charged.
+\paragraph{Gate D: finite-sample observability.}
+A point estimate of probe damage is not enough. For every candidate continuation $m$, evaluate the reduced and matched dense predictors on the \emph{same} independent probe examples, form the paired loss differences, and compute the upper confidence bound from Theorem~\ref{thm:paired-damage}:
+\[
+U_m
+=
+\widehat D_m
++
+\sqrt{\frac{2\widehat v_m\log(2M/\delta)}{n}}
++
+\frac{14B\log(2M/\delta)}{3(n-1)}.
+\]
+A candidate survives only if its structural damage is statistically resolved tightly enough that $U_m$ lies inside its predeclared risk budget. If the confidence radius is too wide, the correct action is \emph{do not contract yet} or acquire a larger/variance-reduced probe; it is not to trust the sign of $\widehat D_m$.
+
+\paragraph{Gate E: compute value.}
+Let $\Delta C_m$ be the measured future compute saving of candidate $m$, including all controller, probe, readout, and rebuilding overhead. For risk-equivalent compute price $\tau$, contract only if
+\[
+\boxed{U_m<\tau\Delta C_m}
+\]
+when a paired finite-sample certificate is available. More generally, use the strongest valid upper bound on structural risk price and require it to be below the compute value. This is the empirical counterpart of Corollary~\ref{cor:compute-dominance}.
 
 \begin{center}
 \fbox{\parbox{0.92\linewidth}{
-\textbf{Target-Value Spectral Rank Annealing (TV-SRA).}
-Train the dense network during the discovery phase. At sparse checkpoints, identify only statistically resolved target-bearing geometry. Estimate the remaining finite-horizon target value of each candidate capacity sector. Once that value is small relative to its compute cost and a structural realization has small current distortion, contract the architecture, rebuild only the affected optimizer state, and continue the same base optimizer. If no representation block has positive value-per-compute, freeze the backbone and solve the readout.
+\textbf{Certified Target-Value Spectral Rank Annealing (TV-SRA).}
+Train the dense network during the discovery phase. At sparse checkpoints, identify statistically resolved target-bearing geometry and construct a small finite family of structurally realizable contractions. Bound the remaining future target value, then bound the paired finite-sample structural damage of each surviving action. Contract only when a candidate's structural-damage upper confidence bound is below its measured risk-equivalent compute saving. Rebuild only the affected optimizer state and continue the same base optimizer. If no representation block retains positive value-per-compute, freeze the backbone and solve the readout.
 }}
 \end{center}
 
-The first implementation in the repository intentionally contracts only the final hidden layer. This is the cleanest place where a coordinate-level neuron deletion produces a genuine parameter/FLOP reduction and where the representation/prediction spectrum has an exact linear-readout interpretation. Extension to internal nonlinear layers requires an explicit structural-transfer bound rather than an analogy.
+The current repository implementation intentionally contracts only the final hidden layer. This is the cleanest place where a coordinate-level neuron deletion produces a genuine parameter/FLOP reduction and where the representation/prediction spectrum has an exact linear-readout interpretation. Extension to internal nonlinear layers requires an explicit structural-transfer bound rather than an analogy.
 
 The finite-horizon interpretation is consistent with the adjoint control formulation of the endogenous spectral-geometry theory. If a reduced geometry state obeys $q_{s+1}=F_s(q_s,u_s)$, an irreversible contraction is a discrete control action whose value must be judged through terminal risk, not through an instantaneous spectral descent direction. TV-SRA is the coarse structural-control specialization: it leaves the base optimizer untouched until the future value of a capacity sector is smaller than the compute that sector costs.
 
@@ -115,7 +132,7 @@ The finite-horizon interpretation is consistent with the adjoint control formula
 A one-shot independent probe is not automatically valid after the first contraction, because the contraction changes all future checkpoints. The cleanest theorem uses a fresh probe at every irreversible decision.
 
 \begin{theorem}[Fresh-probe adaptive contraction oracle]\label{thm:fresh-probe}
-Consider decision times $k=1,\ldots,K$. Conditional on all data, models, and contraction decisions before time $k$, suppose the controller constructs a finite candidate family $\{f_{k,m}:1\le m\le M_k\}$ without using the fresh probe $\mathcal P_k$ of size $n_k$. Let the probe loss be clipped to $[0,B]$, let $c_{k,m}$ be a deterministic risk-equivalent compute penalty measurable before seeing $\mathcal P_k$, and select
+Consider decision times $k=1,\ldots,K$. Conditional on all data, models, and contraction decisions before time $k$, suppose the controller constructs a finite candidate family $\{f_{k,m}:1\le m\le M_k\}$ without using the fresh probe $\mathcal P_k$ of size $n_k$. Let the probe loss be clipped to $[0,B]$, let $c_{k,m}$ be a deterministic compute penalty measurable before seeing $\mathcal P_k$, and select
 \[
 \widehat m_k\in\arg\min_m\{\widehat R_{\mathcal P_k}(f_{k,m})+c_{k,m}\}.
 \]
@@ -144,25 +161,26 @@ The decisive comparison is
 \[
 \text{same initialization + same data order + same base optimizer}
 \]
-for a dense model and the contraction controller. The primary plots are test metric versus total measured compute and active parameters versus training time. Every SVD, probe forward pass, Jacobian call, checkpoint, readout solve, and model-rebuild cost is charged to the proposed method.
+for a dense model and the contraction controller. The primary plots are test metric versus total measured compute and active parameters versus training time. Every SVD, probe forward pass, Jacobian call, checkpoint, readout solve, confidence-bound evaluation, and model-rebuild cost is charged to the proposed method.
 
 The minimum empirical ladder is:
 \begin{enumerate}
-\item \textbf{Exact fixed-geometry audit.} Numerically verify Theorem~\ref{thm:fixed-value} to machine precision.
+\item \textbf{Exact fixed-geometry audit.} Numerically verify Theorem~\ref{thm:fixed-value} and the compute-to-accuracy consequence to machine precision.
 \item \textbf{Solvable quadratic teacher--student.} Verify the exact discovery-delay law: blind contraction before target resolution starts with vanishing overlap and pays a dimension-dependent delay, while post-BBP contraction retains an order-one aligned direction.
-\item \textbf{Small real MLPs.} Digits and breast cancer, with disjoint train/probe/test splits. Compare dense AdamW, optimizer-reset, dense readout-refit, the falsified total-speed SRA proxy, and TV-SRA.
+\item \textbf{Finite-sample observability audit.} On a model where population structural damage can be approximated with a very large independent evaluation sample, check nominal coverage and tightness of the paired empirical-Bernstein bound as probe size grows. This must precede use of the UCB as a controller gate.
+\item \textbf{Small real MLPs.} Digits and breast cancer are development-only after the first two controller iterations. Compare dense AdamW, optimizer-reset, dense readout-refit, the falsified total-speed SRA proxy, and TV-SRA.
 \item \textbf{Image scale.} ResNet/CIFAR and then ImageNet. Contract channels, not unstructured weights, so FLOP savings are real. EPI and Early-Bird are mandatory onset baselines.
 \item \textbf{Transformer scale.} Fine-tuning and continued pretraining. Candidate structural units are MLP intermediate rank, attention heads, or low-rank factors. Compare with dynamic sparse/rank and modern adaptive-PEFT baselines.
 \end{enumerate}
 
-A result is considered negative if any of the following holds after matched compute: the controller does not reduce wall-clock/FLOPs, test performance falls outside a predeclared tolerance, probe overhead consumes the saved compute, or the onset rule fails to transfer across configurations.
+A result is considered negative if any of the following holds after matched compute: the controller does not reduce wall-clock/FLOPs, test performance falls outside a predeclared tolerance, probe overhead consumes the saved compute, structural-damage confidence intervals are too wide to trigger useful contractions, or the onset rule fails to transfer across configurations.
 
 \section{Position relative to existing methods}
 The novelty cannot be ``pruning during training,'' ``adaptive rank,'' or simply ``when to prune.'' Early-Bird tickets and, most directly, the Early Pruning Indicator (EPI) of Shen et al. already detect an early point at which a dominant structural-pruning architecture stabilizes. RigL/SRigL, EigenDamage, spectral pruning, dynamic rank methods, AdaLoRA, GaLore, FARSS, and SPARCS occupy adjacent spaces.
 
 The distinctive scientific claim pursued here is narrower:
 \begin{quote}
-A target-weighted prediction-space theory determines the finite-horizon value of capacity, proves a mechanism by which unresolved target directions become identifiable only after a training-generated phase transition, and supplies an explicit error budget for turning that prediction-space decision into structural contraction.
+A target-weighted prediction-space theory determines the finite-horizon value of capacity, proves a mechanism by which unresolved target directions become identifiable only after a training-generated phase transition, supplies an explicit error budget for turning that prediction-space decision into structural contraction, and requires the resulting structural damage to be statistically observable before compute is traded for capacity.
 \end{quote}
 The empirical distinction from EPI must be tested directly: architecture/mask stability versus target-value/geometry onset, under identical structural pruning actions and charged compute.
 
@@ -174,15 +192,16 @@ Claim & Status & Scope \\
 \midrule
 Modal gradient energy $\sum\mu_ja_j^2$ & Exact & Any differentiable square-loss predictor \\
 Fixed-geometry deletion cost & Exact & Frozen Jacobian / linearized dynamics \\
+Compute-to-target bound & Exact & Fixed geometry above deletion floor \\
 Value-per-compute oracle & Exact & Fixed geometry, separable mode costs \\
-Condition-number improvement & Exact & Active quadratic subproblem; not automatic wall-clock speedup \\
 Finite-sample drop criterion & Exact & Gaussian sequence model \\
 Total subspace speed can be pure nuisance motion & Exact & Projector geometry \\
 Accessibility saturation bound & Exact & Arbitrary future representation path \\
 Curvature-to-spectral path bound & Exact conditional & Bounded Jacobian and second derivative \\
 Structural-flow stability & Exact conditional & Lipschitz tube + omitted-gradient envelope \\
 Spectral persistence bound & Exact conditional & Isolated cluster + operator-velocity/gap bounds \\
-Structural transfer/persistence & Exact conditional & Structural projector + parameter-Gram gap for persistence \\
+Master structural risk bound & Exact conditional & Geometry motion + structural mismatch + jump \\
+Paired structural-damage UCB & Exact finite-sample & Fixed candidate family + independent probe \\
 Exact neuron-basis contraction & Exact & Current final-hidden linear-readout span \\
 Dynamic target compressibility after BBP & Exact in model & Quadratic teacher--student phase theorem \\
 Rank-one discovery-delay law & Exact in model & Post-contraction target-angle dynamics \\
@@ -194,7 +213,7 @@ Compute-matched speedup & Empirical question & Must be established, not assumed 
 \end{center}
 
 \section{What remains mathematically hard}
-Three problems separate this draft from a definitive theory. First, a cheap observable upper bound on future \emph{target-weighted} geometry motion is architecture-dependent; total Grassmann speed is universally safe but can be arbitrarily loose by Proposition~\ref{prop:nuisance-motion}. Second, converting a prediction-space cluster into a hardware-friendly internal-layer contraction without large structural gap $\delta$ requires architecture-specific results. Third, the fresh-probe theorem gives a clean finite-sample route for repeated decisions, but repeatedly spending fresh labels can be expensive; a reusable-probe or cross-fitting guarantee with low sample overhead remains open.
+Four problems separate this draft from a definitive theory. First, a cheap observable upper bound on future \emph{target-weighted} geometry motion is architecture-dependent; total Grassmann speed is universally safe but can be arbitrarily loose by Proposition~\ref{prop:nuisance-motion}. Second, converting a prediction-space cluster into a hardware-friendly internal-layer contraction without large structural gap $\delta$ requires architecture-specific results. Third, the paired finite-sample certificate can be too conservative when the probe is small or the loss bound is loose; variance-adaptive or problem-specific concentration may be needed. Fourth, the fresh-probe theorem gives a clean repeated-decision route, but repeatedly spending fresh labels can be expensive; a reusable-probe or cross-fitting guarantee with low sample overhead remains open.
 
 These are not reasons to avoid the algorithm. They are the exact places where the theory says empirical shortcuts must be labeled as proxies rather than certificates.
 
