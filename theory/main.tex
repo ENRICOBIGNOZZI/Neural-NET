@@ -1,0 +1,42 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools,bm,booktabs,enumitem,microtype}
+\usepackage[hidelinks]{hyperref}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{lemma}[theorem]{Lemma}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{remark}[theorem]{Remark}
+
+\newcommand{\Hh}{\mathcal H}
+\newcommand{\Th}{\Theta}
+\newcommand{\R}{\mathcal R}
+\newcommand{\ip}[2]{\langle #1,#2\rangle}
+\newcommand{\norm}[1]{\left\lVert #1\right\rVert}
+\newcommand{\op}{\mathrm{op}}
+\newcommand{\Ran}{\mathrm{Ran}}
+\newcommand{\spec}{\mathrm{spec}}
+\newcommand{\Id}{I}
+
+\title{When Is a Neural Network Ready to Become Smaller?\\
+Safe Dynamic Spectral Reduction from Target-Weighted Prediction Geometry}
+\author{Enrico Bignozzi}
+\date{Working theory draft --- September 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Overparameterization can be useful early in training because it lets a network discover a representation, yet the same excess capacity can become statistically and computationally wasteful after target-relevant directions have separated from nuisance directions. This note develops a theory for deciding when capacity may be removed during training. The primitive object is the prediction Jacobian, not the spectrum of the weight matrices. Under square loss, the gradient energy carried by a prediction mode is exactly $\mu_j a_j^2$, where $\mu_j$ is a prediction-operator eigenvalue and $a_j$ is residual target mass in its eigenvector. In fixed geometry, the exact finite-horizon value of keeping that mode is $\frac12 a_j^2(1-e^{-2\mu_jH})$. This yields an exact value-per-compute oracle and shows why small eigenvalues alone are not a pruning criterion.
+
+For moving nonlinear geometry we compare the full gradient flow with a projected flow and obtain an explicit finite-horizon trajectory and risk bound in terms of omitted gradient energy. A spectral-gap argument controls the future growth of discarded-cluster gradient energy from operator velocity, giving a conservative persistence certificate. A structural-transfer theorem then separates the ideal spectral decision from its realization by neurons, channels, heads, or low-rank factors. For the final hidden layer with a linear readout, a rank-$r$ representation always contains a subset of $r$ neurons spanning the same current readout space; the only reason not to contract immediately is future feature-discovery value. Finally, the exact quadratic teacher--student phase theorem implies a nonzero pruning-onset time: target spikes are initially hidden in the random bulk, become identifiable only after dynamic BBP crossings, and eventually separate from a bulk whose upper edge collapses to zero. The theory therefore predicts a two-stage training principle: overparameterize to discover, then contract after target-relevant geometry becomes both resolved and persistent.
+\end{abstract}
+
+
+\input{parts/01_foundations}
+\input{parts/02_dynamic_safety}
+\input{parts/03_structural_onset}
+\input{parts/04_algorithm_protocol}
