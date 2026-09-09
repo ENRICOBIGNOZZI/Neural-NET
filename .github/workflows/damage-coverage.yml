@@ -1,0 +1,32 @@
+name: Damage UCB coverage
+
+on:
+  push:
+    branches: [research/safe-spectral-reduction]
+
+jobs:
+  coverage:
+    if: contains(github.event.head_commit.message, '[coverage]')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[dev]'
+      - name: Audit paired structural-damage UCB coverage
+        run: >-
+          python experiments/run_damage_ucb_coverage.py
+          --seeds 0 1
+          --population-n 30000
+          --repetitions 100
+          --probe-sizes 64 128 256 512
+      - name: Upload coverage audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: damage-ucb-coverage
+          path: results/damage_ucb_coverage.json
