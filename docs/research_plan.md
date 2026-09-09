@@ -18,9 +18,12 @@ The intended answer is not "when weights are small." It is: when a target-irrele
 - [x] structural-transfer theorem;
 - [x] exact current final-hidden neuron-basis theorem;
 - [x] phase-aware onset corollary from dynamic BBP separation;
-- [ ] sharpen persistence bound with architecture-specific `dot L` control for a standard MLP;
-- [ ] derive a cluster-level version that never identifies unstable eigenvectors inside the bulk;
-- [ ] finite-sample adaptive-probe theorem for repeated contraction decisions.
+- [x] exact rank-one post-contraction target-angle dynamics and discovery-delay law;
+- [x] derive a general curvature-to-`dot L` path-length bound;
+- [ ] sharpen it with architecture-specific constants/state evolution for a standard MLP;
+- [ ] derive a cluster-level empirical estimator that never identifies unstable eigenvectors inside the bulk;
+- [x] finite-sample adaptive-probe theorem for repeated contraction decisions with fresh probes;
+- [ ] reusable-probe/cross-fitting theorem with lower sample overhead.
 
 ## Milestone B — first algorithm
 
@@ -31,11 +34,11 @@ At checkpoint `t`:
 1. compute final hidden features on an independent probe;
 2. estimate target accessibility and effective rank;
 3. estimate principal-angle speed relative to the previous checkpoint;
-4. rank neuron columns by rank-revealing QR;
-5. choose the smallest subset preserving current accessibility and frozen-readout probe risk;
+4. construct a target-aware neuron ordering on training data;
+5. use the independent probe to choose the smallest prefix preserving current accessibility and frozen-readout probe risk;
 6. require slow subspace motion for multiple checkpoints;
 7. physically rebuild the layer at the smaller width;
-8. continue the same base optimizer, with a reset control reported separately.
+8. refit the linear readout on training features, rebuild optimizer state, and continue training; report dense optimizer-reset and dense readout-refit controls separately.
 
 This is a **proxy** controller, not yet the fully certified spectral controller.
 
