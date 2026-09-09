@@ -39,30 +39,40 @@ The canonical draft in `theory/` now contains exact or explicitly conditional re
 
 ## First algorithmic realization
 
-The provisional controller is **Spectral Rank Annealing (SRA)**. The implementation is deliberately conservative and currently contracts only the last hidden layer:
+The first **Spectral Rank Annealing (SRA)** proxy contracts only the last hidden layer:
 
 - train/probe/test are disjoint;
 - train data construct a target-aware neuron ordering;
 - the probe checks target accessibility, frozen-readout risk, and subspace persistence;
-- a prospective finite-horizon feature-value proxy is logged but is not yet used as a gate until it is calibrated;
+- a prospective finite-horizon feature-value proxy is logged but is not yet used as a certificate;
 - the test set is ex-post only;
-- after contraction the final linear readout is refit by ridge, matching the theorem;
+- after contraction the final linear readout is refit by ridge;
 - two full-width controls fork from the same checkpoint: optimizer reset only, and dense ridge-readout refit;
 - the base optimizer remains AdamW.
+
+This first controller is now treated as a **falsification baseline**, not as the final algorithm: its fixed-rank subspace-speed gate tracks unresolved nuisance directions too aggressively and is expensive.
 
 ## Current audits
 
 - Fixed-geometry theorem identity error: `7.33e-17`.
-- Quadratic onset audit (`theta=1`, `gamma=.5`): the exact BBP crossing is `0.08328`; after `3 x tau_BBP`, the retained top direction has median squared teacher overlap around `0.83--0.86` over dimensions 32--256, versus `0.003--0.016` at isotropic initialization. The implied extra time to 90% teacher overlap is roughly `0.10--0.16` post-BBP versus `1.58--2.02` after blind initialization contraction.
-- The previous real-data CPU pilot found late, performance-neutral contraction on Digits and no contraction on Cancer, with negative wall-clock economics after controller cost. A fresh pilot is being run with explicit optimizer-reset and dense-readout-refit controls so that contraction is isolated from the terminal readout solve.
+- Quadratic onset audit (`theta=1`, `gamma=.5`): the exact BBP crossing is `0.0927600431`. Across dimensions 32--256 and 12 seeds each, blind initialization directions have `O(1/d)` teacher overlap, while the top direction at `2 x tau_BBP` has mean squared teacher overlap about `0.69--0.72`. The exact post-contraction angle law implies roughly `1.5--1.9` units less additional population time to reach 90% target overlap after waiting for separation.
+- Controlled Digits pilot: 4/4 contractions, about `14.96%` final parameter reduction and only `2.83%` cumulative active-parameter-step saving. Adaptive mean test MSE is `0.06860`, versus `0.07033` for uninterrupted dense AdamW but `0.06665` for the **dense readout-refit control**. Thus the current experiment does **not** show a contraction accuracy advantage once the readout action is controlled.
+- The same Digits controller costs `1.72x` dense CPU wall-clock including diagnostics. This is a negative compute result.
+- Cancer: 0/4 contractions and `1.33x` wall-clock due monitoring overhead. The failure is informative: accessibility is nearly saturated while weak rank-8 directions keep rotating, showing that a total-subspace-speed gate is not the right target-value object.
 
-See `docs/pilot_results.md` for the exact interpretation.
+See `docs/pilot_results.md` for the exact seed-level results and interpretation.
+
+## Literature boundary
+
+The closest prior work on **when** to prune is Shen et al., *When To Prune? A Policy Towards Early Structural Pruning* (CVPR 2022), whose Early Pruning Indicator detects stabilization of the dominant pruned architecture. Therefore the contribution cannot be “learn dense briefly, then prune.” The research target is the mathematical distinction between **architecture stability** and **target-compressibility of learned prediction geometry**, including finite-horizon deletion value and a phase-theoretic reason not to contract before unresolved target modes separate.
+
+See `docs/literature_map.md` for the current novelty audit.
 
 ## Repository structure
 
 - `theory/` — canonical mathematical draft and proofs.
-- `src/neural_net/` — exact diagnostics and the first conservative controller.
-- `experiments/` — theorem audits and dense-vs-SRA pilots.
+- `src/neural_net/` — exact diagnostics and conservative controller prototypes.
+- `experiments/` — theorem audits and dense-vs-reduced controlled pilots.
 - `tests/` — unit tests for exact identities, readout refitting, and structural contraction.
 - `docs/` — research plan, literature map, claim ledger, empirical protocol, and current pilot results.
 
