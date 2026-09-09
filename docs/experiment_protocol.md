@@ -32,6 +32,7 @@ At minimum:
 
 - dense AdamW;
 - dense AdamW with an optimizer reset at the contraction checkpoint (isolates reset effects);
+- dense AdamW with the same frozen-readout ridge refit at the contraction checkpoint (isolates the value of solving the readout from the value of contraction);
 - static low-rank/width model with the final contracted size from initialization;
 - magnitude or structured pruning baseline;
 - dynamic sparse baseline (RigL/SRigL where appropriate);
@@ -43,7 +44,7 @@ At minimum:
 Verify the fixed-geometry theorem to machine precision. No ML benchmark is needed.
 
 ### 1. Solvable quadratic teacher--student
-The critical falsification test is pruning before versus after dynamic spectral separation. The theory predicts that pre-crossing pruning can delete future signal.
+The critical falsification test is contraction before versus after dynamic spectral separation. In the rank-one model, blind premature contraction creates a dimension-dependent target-discovery delay, while retaining a resolved post-BBP outlier has order-one target overlap.
 
 ### 2. Small MLP pilot
 Digits even/odd and Wisconsin breast cancer. Use 60/20/20 train/probe/test splits. Controller uses train/probe only. First structural action: contract the last hidden layer by neuron subset selection.
@@ -57,3 +58,7 @@ Start with fine-tuning, then continued pretraining. Candidate structural units: 
 ## Falsification thresholds
 
 The method fails a benchmark if, after including controller overhead, it does not produce a better performance-vs-compute frontier than the dense baseline within predeclared uncertainty. A lower final parameter count by itself is not sufficient.
+
+## Adaptive probe rule
+
+For a mathematically certified repeated-decision experiment, use a fresh independent probe at each irreversible contraction decision and allocate the failure budget across decisions. Reusing one probe across a trajectory is allowed only in proxy experiments and must be labeled as such until a stability/cross-fitting/reusable-holdout argument is supplied.
