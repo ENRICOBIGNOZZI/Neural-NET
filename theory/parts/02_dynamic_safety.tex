@@ -1,0 +1,182 @@
+\section{Moving geometry: why pruning can be premature}
+In a feature-learning network, the basis itself moves. For simple eigenvalues,
+\[
+\dot\mu_j=\ip{u_j}{\dot L_tu_j},
+\]
+and under the gauge $\ip{u_j}{\dot u_j}=0$,
+\[
+\dot u_j
+=\sum_{m\ne j}
+\frac{\ip{u_m}{\dot L_tu_j}}{\mu_j-\mu_m}u_m.
+\]
+The residual coefficients satisfy
+\[
+\boxed{
+\dot a_j
+=-\mu_ja_j
++\sum_{m\ne j}
+\frac{\ip{u_m}{\dot L_tu_j}}{\mu_j-\mu_m}a_m.}
+\]
+The first term is coefficient fitting in the current basis; the second is target transport caused by feature learning. A currently weak mode can therefore become important because its eigenvalue grows, its eigenspace rotates toward residual target mass, or both.
+
+This fact motivates a \emph{persistence} requirement: deletion should be based on a finite-horizon upper bound, not a single checkpoint.
+
+\section{Finite-horizon stability of projected training}
+We now compare nonlinear full training with a reduced flow. Define
+\[
+g(\theta)=J_\theta^\ast e_\theta=-\nabla\R(\theta).
+\]
+Fix an orthogonal structural projector $Q$ in parameter space. Starting from the same checkpoint $\theta_0$, let
+\[
+\dot\theta_s=g(\theta_s),
+\qquad
+\dot{\widetilde\theta}_s=Qg(\widetilde\theta_s),
+\qquad
+\theta_0=\widetilde\theta_0.
+\]
+
+\begin{theorem}[Safe finite-horizon projected-flow bound]\label{thm:gronwall}
+Assume on a tube containing both trajectories for $s\in[0,H]$ that:
+\begin{enumerate}[label=(\roman*)]
+\item $g$ is $L_g$-Lipschitz;
+\item $\norm{J_\theta}_{\op}\le B_J$;
+\item both residual norms are at most $B_e$;
+\item the omitted gradient along the reduced path satisfies
+$\norm{(I-Q)g(\widetilde\theta_s)}\le\varepsilon(s)$.
+\end{enumerate}
+Then
+\[
+\boxed{
+\norm{\theta_H-\widetilde\theta_H}
+\le
+\int_0^H e^{L_g(H-s)}\varepsilon(s)\,ds,}
+\]
+\[
+\boxed{
+\norm{F(\theta_H)-F(\widetilde\theta_H)}
+\le
+B_J\int_0^H e^{L_g(H-s)}\varepsilon(s)\,ds,}
+\]
+and
+\[
+\boxed{
+|\R(\theta_H)-\R(\widetilde\theta_H)|
+\le
+B_eB_J\int_0^H e^{L_g(H-s)}\varepsilon(s)\,ds.}
+\]
+If $\varepsilon(s)\le\bar\varepsilon$, the integral is
+$\bar\varepsilon(e^{L_gH}-1)/L_g$, with the continuous limit $H\bar\varepsilon$ when $L_g=0$.
+\end{theorem}
+
+\begin{proof}
+Set $z_s=\theta_s-\widetilde\theta_s$. Then
+\[
+\dot z_s=g(\theta_s)-g(\widetilde\theta_s)+(I-Q)g(\widetilde\theta_s),
+\]
+so $\frac{d}{ds}\norm{z_s}\le L_g\norm{z_s}+\varepsilon(s)$ almost everywhere. Gr\"onwall's inequality gives the parameter bound. The Jacobian bound makes $F$ $B_J$-Lipschitz on the tube. Finally,
+\[
+|\R(\theta)-\R(\tilde\theta)|
+\le\frac12(\norm{e_\theta}+\norm{e_{\tilde\theta}})
+\norm{e_\theta-e_{\tilde\theta}}
+\le B_e\norm{F(\theta)-F(\tilde\theta)}.
+\]
+\end{proof}
+
+This theorem is deliberately modular. The hard part is to upper-bound the future omitted gradient $\varepsilon(s)$. The next result converts spectral separation and operator velocity into such a persistence control for an ideal spectral cluster.
+
+\section{A spectral persistence certificate}
+Let $P_D(t)$ be the Riesz projector onto an isolated positive spectral cluster $D$ of $L_t$, separated from the rest of the spectrum by a gap $\Delta_t\ge\Delta>0$. Define the cluster gradient energy
+\[
+E_D(t)=\norm{J_t^\ast P_D(t)e_t}^2
+=\ip{e_t}{L_tP_D(t)e_t}.
+\]
+For a simple spectrum this is $\sum_{j\in D}\mu_j a_j^2$.
+
+\begin{theorem}[Upper growth bound for discarded-cluster gradient energy]\label{thm:persistence}
+Suppose $L_t$ is differentiable, $P_D(t)$ remains isolated by gap $\Delta$, and square-loss gradient flow holds. Then
+\[
+\dot E_D(t)
+\le
+\norm{e_t}^2\norm{\dot L_t}_{\op}
+\left(1+\frac{2\norm{L_t}_{\op}}{\Delta}\right).
+\]
+Consequently, if on $[t,t+H]$
+\[
+\norm{e_s}\le B_e,
+\qquad
+\norm{L_s}_{\op}\le B_L,
+\qquad
+\norm{\dot L_s}_{\op}\le B_{\dot L},
+\]
+then
+\[
+\boxed{
+E_D(t+h)\le E_D(t)+hM_D,
+\qquad
+M_D=B_e^2B_{\dot L}\left(1+\frac{2B_L}{\Delta}\right),
+\quad 0\le h\le H.}
+\]
+\end{theorem}
+
+\begin{proof}
+Because $P_D$ is a spectral projector, it commutes with $L$. Put $A=LP_D$. Then
+\[
+E_D=\ip e{Ae},
+\quad
+\dot E_D=2\ip{\dot e}{Ae}+\ip e{\dot A e}.
+\]
+Using $\dot e=-Le$ and $LP_D=P_DL$,
+\[
+2\ip{\dot e}{Ae}
+=-2\ip{Le}{LP_De}
+=-2\norm{LP_De}^2\le0.
+\]
+Also $\dot A=\dot L P_D+L\dot P_D$, so
+\[
+\dot E_D\le\norm e^2
+\left(\norm{\dot L}_{\op}+\norm L_{\op}\norm{\dot P_D}_{\op}\right).
+\]
+The standard Riesz-projector/Davis--Kahan perturbation bound gives
+$\norm{\dot P_D}_{\op}\le2\norm{\dot L}_{\op}/\Delta$. Substitution proves the claim.
+\end{proof}
+
+\begin{corollary}[Finite-horizon omitted-energy envelope]
+Under Theorem~\ref{thm:persistence},
+\[
+\int_t^{t+H}E_D(s)\,ds
+\le HE_D(t)+\frac12M_DH^2.
+\]
+Thus a cluster with both small current $E_D(t)$ and small operator-motion budget $M_D$ cannot contribute much direct gradient dissipation over the next horizon.
+\end{corollary}
+
+The gap is essential. Inside an unresolved random-matrix bulk, individual empirical eigenvectors are unstable; pruning decisions should be made at the cluster level until a stable subspace detaches.
+
+\section{From ideal spectral reduction to actual parameter deletion}
+A spectral projector is not automatically a hardware-friendly parameter mask. This is the structural-realizability gap.
+
+Let $Q_K$ be an ideal kept parameter projector and let $S$ be a structural projector induced by a realizable architecture reduction (for example, retained neurons or channels).
+
+\begin{theorem}[Structural transfer]\label{thm:structural-transfer}
+At any checkpoint,
+\[
+\boxed{
+\norm{(I-S)g}
+\le
+\norm{(I-Q_K)g}
++\norm{(I-S)Q_Kg}.}
+\]
+In particular, if the ideal dropped sector has energy
+$\norm{(I-Q_K)g}^2\le E_D$ and the structural approximation satisfies
+$\norm{(I-S)Q_Kg}\le\delta$, then
+\[
+\norm{(I-S)g}\le\sqrt{E_D}+\delta.
+\]
+Theorem~\ref{thm:gronwall} then applies with $\varepsilon=\sqrt{E_D}+\delta$ (or the corresponding time-varying envelope).
+\end{theorem}
+
+\begin{proof}
+Write
+$(I-S)g=(I-S)(I-Q_K)g+(I-S)Q_Kg$ and use that an orthogonal projector has operator norm one.
+\end{proof}
+
+This theorem forces an honest separation between two scientific claims: prediction geometry may say that a sector is expendable, while a particular neuron/channel realization may still approximate that sector poorly.
