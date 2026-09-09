@@ -58,7 +58,7 @@ def sequence_drop_delta(mu, a, sigma2_over_n: float, ridge: float):
     return delta
 
 
-def _orthonormal_basis(x: np.ndarray, rtol: float = 1e-10) -> np.ndarray:
+def _orthonormal_basis(x: np.ndarray, rtol: float = 1e-10, rank: int | None = None) -> np.ndarray:
     x = np.asarray(x, dtype=float)
     if x.ndim != 2:
         raise ValueError("matrix required")
@@ -67,12 +67,26 @@ def _orthonormal_basis(x: np.ndarray, rtol: float = 1e-10) -> np.ndarray:
     u, s, _ = np.linalg.svd(x, full_matrices=False)
     if len(s) == 0:
         return np.zeros((x.shape[0], 0))
-    rank = int(np.sum(s > rtol * max(s[0], 1.0)))
-    return u[:, :rank]
+    numerical_rank = int(np.sum(s > rtol * max(s[0], 1.0)))
+    if rank is None:
+        use_rank = numerical_rank
+    else:
+        use_rank = min(max(0, int(rank)), numerical_rank)
+    return u[:, :use_rank]
 
 
-def accessibility_from_features(features: np.ndarray, target: np.ndarray, rtol: float = 1e-10) -> float:
-    """Squared target projection fraction onto the empirical feature span."""
+def accessibility_from_features(
+    features: np.ndarray,
+    target: np.ndarray,
+    rtol: float = 1e-10,
+    rank: int | None = None,
+) -> float:
+    """Squared target projection fraction onto an empirical feature subspace.
+
+    ``rank=None`` uses the full numerical column span.  A finite ``rank`` uses only
+    the leading left-singular subspace and is the appropriate diagnostic when the
+    remaining empirical feature directions are treated as unresolved/noisy.
+    """
     h = np.asarray(features, dtype=float)
     y = np.asarray(target, dtype=float).reshape(-1)
     if h.shape[0] != y.shape[0]:
@@ -82,11 +96,19 @@ def accessibility_from_features(features: np.ndarray, target: np.ndarray, rtol: 
     denom = float(y @ y)
     if denom == 0:
         return 0.0
-    q = _orthonormal_basis(h, rtol=rtol)
+    q = _orthonormal_basis(h, rtol=rtol, rank=rank)
     if q.shape[1] == 0:
         return 0.0
     proj = q.T @ y
     return float((proj @ proj) / denom)
+
+
+def target_angle_from_accessibility(accessibility: float) -> float:
+    """Dimensionless target-accessibility angle asin(sqrt(q))."""
+    q = float(accessibility)
+    if not 0.0 <= q <= 1.0:
+        raise ValueError("accessibility must lie in [0, 1]")
+    return float(math.asin(math.sqrt(q)))
 
 
 def projector_from_features(features: np.ndarray, rank: int | None = None) -> np.ndarray:
@@ -130,7 +152,6 @@ def effective_rank(features: np.ndarray) -> float:
     return float(np.exp(-(p * np.log(p)).sum()))
 
 
-
 def target_greedy_neuron_order(features: np.ndarray, target: np.ndarray) -> np.ndarray:
     """Leakage-safe OMP-style neuron ordering when called on training data.
 
@@ -156,6 +177,7 @@ def target_greedy_neuron_order(features: np.ndarray, target: np.ndarray) -> np.n
         coef, *_ = np.linalg.lstsq(xs, y, rcond=None)
         residual = y - xs @ coef
     return np.asarray(selected, dtype=int)
+
 
 def pivoted_neuron_order(features: np.ndarray) -> np.ndarray:
     """Rank-revealing ordering of neuron columns using pivoted QR."""
