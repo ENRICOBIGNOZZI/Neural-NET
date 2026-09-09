@@ -1,0 +1,75 @@
+\section{Exact current sufficiency for the final hidden layer}
+The final hidden layer followed by a scalar linear readout gives the cleanest structural case. Let
+\[
+h_t:\mathcal X\to\mathbb R^m,
+\qquad
+(T_t\beta)(x)=\beta^\top h_t(x),
+\]
+with representation span $\mathcal S_t=\Ran(T_t)$. Let $C_t=T_t^\ast T_t=\mathbb E[h_th_t^\top]$ and $K_t=T_tT_t^\ast$. Their positive spectra coincide.
+
+For a neuron subset $I\subset\{1,\ldots,m\}$ let $T_{t,I}$ keep only those coordinates and let $P_t,P_{t,I}$ denote the corresponding prediction-space projectors.
+
+\begin{proposition}[Exact current cost of neuron contraction]\label{prop:neuron-cost}
+The increase in population risk of the optimal frozen linear readout caused by retaining only $I$ is
+\[
+\boxed{
+D_t(I)=\norm{(P_t-P_{t,I})f^\star}^2\ge0.}
+\]
+If $\Ran(T_{t,I})=\Ran(T_t)$, then $D_t(I)=0$.
+\end{proposition}
+
+\begin{proof}
+The optimal frozen-readout excess risk in a representation span $\mathcal S$ is
+$\norm{(I-P_\mathcal S)f^\star}^2$. Since $\Ran(T_{t,I})\subseteq\Ran(T_t)$, the projectors are nested and Pythagoras yields the difference $\norm{(P_t-P_{t,I})f^\star}^2$.
+\end{proof}
+
+\begin{theorem}[A rank-$r$ representation contains an exact $r$-neuron basis]\label{thm:subset-basis}
+If $\mathrm{rank}(T_t)=r< m$, there exists a subset $I$ of exactly $r$ neuron coordinates such that
+\[
+\Ran(T_{t,I})=\Ran(T_t).
+\]
+Therefore the current optimal frozen-readout risk is preserved exactly after deleting $m-r$ neurons.
+\end{theorem}
+
+\begin{proof}
+The $m$ coordinate feature functions $h_{t,1},\ldots,h_{t,m}$ span the $r$-dimensional space $\Ran(T_t)$. Every finite spanning set contains a basis subset of size $r$.
+\end{proof}
+
+\begin{remark}[Why not immediately compress to one feature?]
+For a single scalar target, if the population-optimal readout coefficient were known, one could collapse the \emph{current predictor} into the scalar feature $\beta_t^{\star\top}h_t$. That does not preserve future feature-learning capacity. The relevant object for training-time contraction is therefore not current predictive sufficiency alone but \emph{current sufficiency plus a bound on future discovery value}. This is the central difference between deployment compression and training-time contraction.
+\end{remark}
+
+\section{The onset of safe reduction in the exact quadratic phase model}
+The endogenous spectral-geometry monograph provides a solvable nonlinear teacher--student model in which the pruning-onset question can be answered cleanly. The learned covariance $A_t$ has a transported random bulk with upper edge $b_+(t)$ satisfying
+\[
+b_+(t)\sim(4t)^{-1},
+\]
+while every fixed teacher eigenvalue $\theta_q$ has a unique dynamic BBP-type crossing time $\tau_{\theta_q,\gamma}$. Before that time the teacher mode has no separated outlier; afterward a unique outlier $z_q(t)>b_+(t)$ appears, converges to $\theta_q$, and its eigenvector overlap $\omega_q(t)$ with the teacher direction converges to one. The tangent prediction operator sends this to a spike $\kappa_q(t)=4z_q(t)$ above the prediction bulk edge $4b_+(t)$.
+
+\begin{theorem}[Oracle phase-aware pruning onset in the quadratic model]\label{thm:bbp-onset}
+Consider finitely many distinct positive teacher modes $\theta_1,\ldots,\theta_k$ satisfying the supercritical terminal conditions of the quadratic phase theorem. Define
+\[
+\tau_{\rm sep}=\max_{1\le q\le k}\tau_{\theta_q,\gamma}.
+\]
+Then:
+\begin{enumerate}[label=(\roman*)]
+\item No rule that identifies all teacher modes solely as detached covariance/prediction outliers can be correct for every $t<\tau_{\rm sep}$.
+\item For every $\varepsilon>0$, there exists $T_\varepsilon>\tau_{\rm sep}$ such that for all $t\ge T_\varepsilon$,
+\[
+b_+(t)\le\varepsilon,
+\qquad
+1-\omega_q(t)\le\varepsilon\quad\forall q.
+\]
+\item Consequently, for sufficiently large $t$ there exists a deterministic threshold $c_t$ that separates all teacher-associated prediction spikes from the random bulk:
+\[
+4b_+(t)<c_t<\min_q4z_q(t).
+\]
+\end{enumerate}
+Thus the solvable model has an endogenous discovery phase followed by an asymptotically identifiable compression phase.
+\end{theorem}
+
+\begin{proof}
+Part (i) follows because at least one teacher mode is, by definition of $\tau_{\rm sep}$, still absorbed in the bulk before the last crossing. For (ii), the phase theorem gives $b_+(t)\to0$ and $\omega_q(t)\to1$ for each fixed $q$; finiteness of $k$ lets one choose a common $T_\varepsilon$. It also gives $z_q(t)\to\theta_q>0$. Hence for sufficiently large $t$, $4b_+(t)<2\min_q\theta_q$ while $4z_q(t)>2\min_q\theta_q$ after increasing $T_\varepsilon$ if needed, so a separating threshold exists, proving (iii).
+\end{proof}
+
+The theorem does \emph{not} claim that a BBP threshold is a universal pruning rule for arbitrary networks. It establishes the exact mechanism in one nonlinear model and provides the theory-derived reason for a warm-up/separation phase.
