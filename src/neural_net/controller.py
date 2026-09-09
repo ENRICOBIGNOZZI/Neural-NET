@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 import numpy as np
 from sklearn.linear_model import Ridge
 
+from .feature_value import constant_speed_feature_value_proxy
 from .spectral import (
     accessibility_from_features,
     effective_rank,
@@ -25,6 +26,7 @@ class ContractionConfig:
     speed_rank: int = 8
     persistence: int = 2
     ridge: float = 1e-3
+    future_horizon_steps: int = 40
 
 
 @dataclass
@@ -38,6 +40,7 @@ class ContractionDecision:
     full_probe_mse: float
     proposed_probe_mse: float
     subspace_speed: float
+    future_accessibility_gain_proxy: float
     effective_rank: float
     reasons: tuple[str, ...] = field(default_factory=tuple)
 
@@ -48,6 +51,12 @@ class FeatureSpanContractionController:
     Training data construct a target-aware neuron ordering; the independent probe only
     validates current target accessibility/risk and measures subspace motion. Expensive
     subset searches are skipped while the representation is still moving quickly.
+
+    ``future_accessibility_gain_proxy`` is logged prospectively from the feature-value
+    theorem using a constant-speed extrapolation.  It is intentionally *not* yet a gate:
+    recent subspace speed is not a certified upper bound on future speed.  This lets the
+    experiments test whether the theory-derived quantity forecasts safe onset before it is
+    promoted into the controller.
     """
 
     def __init__(self, config: ContractionConfig):
@@ -89,6 +98,12 @@ class FeatureSpanContractionController:
             )
             speed = angle / cfg.checkpoint_interval
         self._previous_probe_features = probe_h.copy()
+
+        future_proxy = constant_speed_feature_value_proxy(
+            full_q,
+            speed,
+            cfg.future_horizon_steps,
+        )
 
         reasons = []
         ready_to_search = step >= cfg.min_step and np.isfinite(speed) and speed <= cfg.max_subspace_speed
@@ -138,6 +153,7 @@ class FeatureSpanContractionController:
             full_probe_mse=float(full_mse),
             proposed_probe_mse=float(chosen_mse),
             subspace_speed=float(speed),
+            future_accessibility_gain_proxy=float(future_proxy),
             effective_rank=float(reff),
             reasons=tuple(reasons),
         )
