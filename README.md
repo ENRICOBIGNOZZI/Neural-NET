@@ -32,7 +32,8 @@ The canonical draft in `theory/` now contains exact or explicitly conditional re
 - a spectral persistence certificate from operator velocity and eigengap;
 - persistence of a fixed structural mask relative to a moving parameter spectral cluster;
 - exact current final-hidden neuron-basis contraction;
-- a nonzero contraction-onset time in the solvable dynamic-BBP teacher--student model;
+- the exact dynamic-BBP onset function and crossing time in the solvable quadratic teacher--student model;
+- **dynamic target compressibility:** after all target spikes separate, the target becomes asymptotically supported on a fixed `k`-dimensional resolved prediction subspace with geometry error `sum_q theta_q^2(1-omega_q^2) -> 0`;
 - exact rank-one post-contraction target-angle dynamics showing a `log(d)` discovery delay after blind premature contraction;
 - a fresh-probe finite-grid oracle for repeated adaptive contraction decisions.
 
@@ -43,16 +44,17 @@ The provisional controller is **Spectral Rank Annealing (SRA)**. The implementat
 - train/probe/test are disjoint;
 - train data construct a target-aware neuron ordering;
 - the probe checks target accessibility, frozen-readout risk, and subspace persistence;
+- a prospective finite-horizon feature-value proxy is logged but is not yet used as a gate until it is calibrated;
 - the test set is ex-post only;
 - after contraction the final linear readout is refit by ridge, matching the theorem;
-- a dense readout-refit control isolates the value of the solve from the value of contraction;
+- two full-width controls fork from the same checkpoint: optimizer reset only, and dense ridge-readout refit;
 - the base optimizer remains AdamW.
 
 ## Current audits
 
 - Fixed-geometry theorem identity error: `7.33e-17`.
 - Quadratic onset audit (`theta=1`, `gamma=.5`): the exact BBP crossing is `0.08328`; after `3 x tau_BBP`, the retained top direction has median squared teacher overlap around `0.83--0.86` over dimensions 32--256, versus `0.003--0.016` at isotropic initialization. The implied extra time to 90% teacher overlap is roughly `0.10--0.16` post-BBP versus `1.58--2.02` after blind initialization contraction.
-- Real-data CPU pilot, four seeds per dataset: Digits contracts 4/4 runs, reduces final parameters by about 15%, and is essentially performance-neutral versus dense AdamW; Cancer contracts 0/4 runs because the measured subspace remains too mobile. Because onset is late and diagnostics are expensive, the current Digits implementation uses about `1.53x` dense wall-clock. **This is explicitly a negative compute result.**
+- The previous real-data CPU pilot found late, performance-neutral contraction on Digits and no contraction on Cancer, with negative wall-clock economics after controller cost. A fresh pilot is being run with explicit optimizer-reset and dense-readout-refit controls so that contraction is isolated from the terminal readout solve.
 
 See `docs/pilot_results.md` for the exact interpretation.
 
