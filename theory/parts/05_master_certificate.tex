@@ -103,6 +103,51 @@ Finally, apply the nonlinear structural-flow Gr\"onwall theorem. Since
 $e^{L_g(t+H-s)}\le e^{L_gH}$, its weighted omitted-gradient integral is at most $e^{L_gH}$ times the preceding unweighted bound. The terminal prediction and risk inequalities then follow from the $B_J$-Lipschitz predictor bound and the residual bound exactly as in Theorem~\ref{thm:gronwall}.
 \end{proof}
 
+For compactness denote the right-hand side of the terminal risk bound by
+\[
+\mathfrak B_{t,H}(S).
+\]
+It is the worst-case risk price, under the stated assumptions, of replacing the dense trajectory by structural action $S$ over the next horizon.
+
+\begin{corollary}[Compute-aware dominance]\label{cor:compute-dominance}
+Let $C_{\rm dense}(t,H)$ and $C_S(t,H)$ be the total measured future compute of dense and structurally reduced training over the horizon, including controller and rebuilding overhead, and suppose
+\[
+\Delta C_{t,H}(S)
+:=C_{\rm dense}(t,H)-C_S(t,H)>0.
+\]
+For a risk-equivalent compute price $\tau\ge0$, define
+\[
+\mathcal J=\R_{t+H}+\tau C_{t,H}.
+\]
+If
+\[
+\boxed{\mathfrak B_{t,H}(S)<\tau\Delta C_{t,H}(S),}
+\]
+then the structural action is guaranteed to have strictly smaller compute-penalized terminal objective than dense continuation:
+\[
+\mathcal J_S<\mathcal J_{\rm dense}.
+\]
+At equality it is weakly dominant.
+\end{corollary}
+
+\begin{proof}
+The master theorem gives
+\[
+\R_S(t+H)-\R_{\rm dense}(t+H)\le\mathfrak B_{t,H}(S).
+\]
+Therefore
+\[
+\mathcal J_S-\mathcal J_{\rm dense}
+\le
+\mathfrak B_{t,H}(S)-\tau\Delta C_{t,H}(S),
+\]
+which is negative under the stated condition.
+\end{proof}
+
+\begin{remark}
+This corollary is the decision-theoretic endpoint. A contraction is not justified because it removes many parameters; it is justified when a valid upper bound on the risk those parameters can still buy is smaller than the measured compute they cost. The price $\tau$ traces a Pareto frontier rather than hiding a preferred accuracy/compute tradeoff.
+\end{remark}
+
 \begin{corollary}[Asymptotically safe compression regime]\label{cor:asymptotic-safe}
 Consider a sequence of contraction checkpoints for which, for a fixed horizon $H$ and uniformly bounded constants in Theorem~\ref{thm:master-safe},
 \[
