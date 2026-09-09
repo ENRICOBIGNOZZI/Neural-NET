@@ -14,7 +14,10 @@ This file is the guardrail for the project. A claim moves from **open** to **emp
 | Operator velocity + eigengap controls future discarded-cluster energy | conditional theorem | Riesz/Davis--Kahan bound |
 | A fixed structural mask tracks a moving kept spectral cluster under a parameter-Gram gap | conditional theorem | curvature + Riesz-projector bound |
 | Final hidden rank deficiency allows exact current neuron-basis contraction | theorem | spanning-set argument |
+| Quadratic null bulk contracts exactly as `b_+(t)=lambda_+/(1+4 t lambda_+)` | exact in quadratic model | exact Riccati solution + MP pushforward |
+| The dynamic-BBP onset is the unique solution of `chi_{theta,gamma}(t)=1` | exact in quadratic model | monotonicity of exact edge-strength function |
 | Safe contraction should not start before target spikes become resolvable | exact in quadratic model | dynamic BBP theorem/corollary |
+| After all target spikes separate, the target becomes asymptotically `k`-dimensional with geometry error `sum theta_q^2(1-omega_q^2)` | exact in quadratic model | covariance-to-prediction bridge + target-overlap theorem |
 | Premature rank-one contraction can create a logarithmic-in-d target discovery delay | exact in rank-one quadratic model | exact overlap-odds dynamics + isotropic initialization |
 | Repeated adaptive contraction can be probe-safe with fresh independent probes | theorem | finite candidate grids + clipped loss |
 | The empirical controller transfers across architectures | open | held-out architecture experiments |
@@ -28,3 +31,4 @@ This file is the guardrail for the project. A claim moves from **open** to **emp
 - We do **not** call a step-count reduction a speedup if diagnostics consume the saved compute.
 - We do **not** use test labels to trigger contraction.
 - We do **not** interpret an unresolved empirical bulk eigenvector as an identifiable direction.
+- We do **not** claim that a BBP threshold is a universal pruning threshold outside the solvable phase model.
