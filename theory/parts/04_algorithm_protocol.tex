@@ -27,6 +27,36 @@ Train the dense network normally during the discovery phase. At sparse checkpoin
 
 The first implementation in this repository intentionally contracts only the final hidden layer. This is the cleanest place where a coordinate-level neuron deletion produces a genuine parameter/FLOP reduction and where the representation/prediction spectrum has an exact linear-readout interpretation. Extension to internal nonlinear layers requires an explicit structural-transfer bound rather than an analogy.
 
+The finite-horizon interpretation is also consistent with the adjoint control formulation of the endogenous spectral-geometry theory. If a reduced geometry state obeys $q_{s+1}=F_s(q_s,u_s)$, an irreversible contraction is a discrete control action whose value must be judged through terminal risk, not through an instantaneous spectral descent direction. SRA is the coarse structural-control specialization: it leaves the base optimizer untouched until the future value of a capacity sector is smaller than the compute that sector costs.
+
+\section{Adaptive probe safety for repeated contractions}
+A one-shot independent probe is not automatically valid after the first contraction, because the contraction changes all future checkpoints. The cleanest theorem uses a fresh probe at every irreversible decision.
+
+\begin{theorem}[Fresh-probe adaptive contraction oracle]\label{thm:fresh-probe}
+Consider decision times $k=1,\ldots,K$. Conditional on all data, models, and contraction decisions before time $k$, suppose the controller constructs a finite candidate family $\{f_{k,m}:1\le m\le M_k\}$ without using the fresh probe $\mathcal P_k$ of size $n_k$. Let the probe loss be clipped to $[0,B]$, let $c_{k,m}$ be a deterministic risk-equivalent compute penalty measurable before seeing $\mathcal P_k$, and select
+\[
+\widehat m_k\in\arg\min_m\{\widehat R_{\mathcal P_k}(f_{k,m})+c_{k,m}\}.
+\]
+For any numbers $\delta_k>0$ with $\sum_{k=1}^K\delta_k\le\delta$, with probability at least $1-\delta$ simultaneously for every adaptive decision time,
+\[
+\boxed{
+R(f_{k,\widehat m_k})+c_{k,\widehat m_k}
+\le
+\min_{1\le m\le M_k}\{R(f_{k,m})+c_{k,m}\}
++2B\sqrt{\frac{\log(2M_k/\delta_k)}{2n_k}}.}
+\]
+\end{theorem}
+
+\begin{proof}
+Condition on the entire history before decision $k$. The candidate predictors and compute penalties are then fixed, while $\mathcal P_k$ is independent. Hoeffding's inequality and a union bound over $M_k$ candidates imply that with conditional probability at least $1-\delta_k$ all candidate probe risks deviate from population risk by at most
+\[
+B\sqrt{\frac{\log(2M_k/\delta_k)}{2n_k}}.
+\]
+On this event, empirical minimization plus two uniform deviations gives the displayed oracle inequality. A union bound over adaptive decision times completes the proof.
+\end{proof}
+
+This theorem gives a rigorous repeated-decision protocol. Reusing the same probe indefinitely requires an additional stability, cross-fitting, reusable-holdout, or martingale argument and is therefore treated as a practical proxy rather than a certificate.
+
 \section{Empirical protocol and falsification criteria}
 The decisive comparison is not against a weak pruning baseline. It is
 \[
@@ -37,8 +67,8 @@ for a dense model and the contraction controller. The primary plots are test met
 The minimum empirical ladder is:
 \begin{enumerate}
 \item \textbf{Exact fixed-geometry audit.} Numerically verify Theorem~\ref{thm:fixed-value} to machine precision.
-\item \textbf{Solvable quadratic teacher--student.} Verify that pruning before the last BBP crossing destroys a teacher mode while post-separation spectral truncation preserves the resolved target sector.
-\item \textbf{Small real MLPs.} Digits and breast cancer, with disjoint train/probe/test splits. Compare dense AdamW with final-hidden-layer contraction, including an optimizer-reset dense control.
+\item \textbf{Solvable quadratic teacher--student.} Verify the exact discovery-delay law: blind contraction before target resolution starts with vanishing overlap and pays a dimension-dependent delay, while post-BBP contraction retains an order-one aligned direction.
+\item \textbf{Small real MLPs.} Digits and breast cancer, with disjoint train/probe/test splits. Compare dense AdamW with final-hidden-layer contraction, including optimizer-reset and dense readout-refit controls.
 \item \textbf{Image scale.} ResNet/CIFAR and then ImageNet. Contract channels, not unstructured weights, so FLOP savings are real.
 \item \textbf{Transformer scale.} Fine-tuning and continued pretraining. Candidate structural units are MLP intermediate rank, attention heads, or low-rank factors. Compare with strong dynamic sparse/rank baselines.
 \end{enumerate}
@@ -63,11 +93,14 @@ Fixed-geometry deletion cost & Exact & Frozen Jacobian / linearized dynamics \\
 Value-per-compute oracle & Exact & Fixed geometry, separable mode costs \\
 Condition-number improvement & Exact & Active quadratic subproblem; not automatic wall-clock speedup \\
 Finite-sample drop criterion & Exact & Gaussian sequence model \\
-Projected-flow stability & Exact conditional & Lipschitz tube + omitted-gradient envelope \\
+Curvature-to-spectral path bound & Exact conditional & Bounded Jacobian and second derivative \\
+Structural-flow stability & Exact conditional & Lipschitz tube + omitted-gradient envelope \\
 Spectral persistence bound & Exact conditional & Isolated cluster + operator-velocity/gap bounds \\
-Structural transfer & Exact & Any orthogonal structural projector \\
+Structural transfer/persistence & Exact conditional & Structural projector + parameter-Gram gap for persistence \\
 Exact neuron-basis contraction & Exact & Current final-hidden linear-readout span \\
 Nonzero pruning onset after BBP & Exact in model & Quadratic teacher--student phase theorem \\
+Rank-one discovery-delay law & Exact in model & Post-contraction target-angle dynamics \\
+Fresh-probe adaptive oracle & Exact & Finite candidate grids + fresh independent probes \\
 Universal internal-layer contraction & Open & Requires architecture-specific structural bridge \\
 Compute-matched speedup & Empirical question & Must be established, not assumed \\
 \bottomrule
@@ -75,7 +108,7 @@ Compute-matched speedup & Empirical question & Must be established, not assumed 
 \end{center}
 
 \section{What remains mathematically hard}
-Three problems separate this draft from a definitive theory. First, a cheap observable upper bound on future $\norm{\dot L_t}$ and cluster motion is architecture-dependent; the universal theory can only expose the interface. Second, converting a prediction-space cluster into a hardware-friendly internal-layer contraction without large structural gap $\delta$ requires architecture-specific results. Third, repeated adaptive probing alters future training after the first contraction, so finite-sample guarantees need fresh probes, cross-fitting, stability, or martingale control rather than the simpler stopping-time argument available to pure early stopping.
+Three problems separate this draft from a definitive theory. First, a cheap observable upper bound on future $\norm{\dot L_t}$ and cluster motion is architecture-dependent; the universal theory can only expose the interface. Second, converting a prediction-space cluster into a hardware-friendly internal-layer contraction without large structural gap $\delta$ requires architecture-specific results. Third, the fresh-probe theorem gives a clean finite-sample route for repeated decisions, but repeatedly spending fresh labels can be expensive; a reusable-probe or cross-fitting guarantee with low sample overhead remains open.
 
 These are not reasons to avoid the algorithm. They are the exact places where the theory says empirical shortcuts must be labeled as proxies rather than certificates.
 
