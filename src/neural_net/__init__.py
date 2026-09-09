@@ -1,5 +1,6 @@
 """Safe spectral reduction research code."""
 
+from .readout import fit_ridge_readout
 from .spectral import (
     accessibility_from_features,
     effective_rank,
@@ -10,6 +11,7 @@ from .spectral import (
 )
 
 __all__ = [
+    "fit_ridge_readout",
     "accessibility_from_features",
     "effective_rank",
     "fixed_geometry_mode_value",
