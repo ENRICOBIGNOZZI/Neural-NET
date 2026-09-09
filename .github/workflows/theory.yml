@@ -1,0 +1,27 @@
+name: Theory compile
+
+on:
+  push:
+    branches: [research/safe-spectral-reduction]
+    paths:
+      - 'theory/**'
+      - '.github/workflows/theory.yml'
+  pull_request:
+    paths:
+      - 'theory/**'
+      - '.github/workflows/theory.yml'
+
+jobs:
+  latex:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile theory
+        uses: xu-cheng/latex-action@v3
+        with:
+          root_file: theory/main.tex
+      - name: Upload theory PDF
+        uses: actions/upload-artifact@v4
+        with:
+          name: theory-pdf
+          path: theory/main.pdf
