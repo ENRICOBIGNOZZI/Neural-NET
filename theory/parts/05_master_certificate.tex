@@ -1,0 +1,130 @@
+\section{A master finite-horizon safe-contraction theorem}
+The previous results can be assembled into one theorem. This theorem is intentionally modular: it separates the value of the ideal prediction-space deletion, the motion of the learned geometry, and the error introduced when that ideal spectral decision is realized by actual structural coordinates.
+
+Fix a contraction checkpoint $t$. Let $P_D(s)$ be a positive prediction-space spectral cluster of $L_s=J_sJ_s^\ast$ that is proposed for deletion, and let $Q_D(s)$ be its paired right-singular parameter projector. Put $Q_K(s)=I-Q_D(s)$. Let $S$ be a fixed structural projector selected at time $t$, representing the neurons, channels, heads, blocks, or rank directions that remain physically active after contraction. Define
+\[
+E_D(s)
+:=\norm{Q_D(s)J_s^\ast e_s}^2
+=\langle e_s,L_sP_D(s)e_s\rangle.
+\]
+At the contraction checkpoint define the structural mismatch
+\[
+\delta_0:=\norm{(I-S)Q_K(t)}_{\op}.
+\]
+
+\begin{theorem}[Master safe dynamic spectral reduction bound]\label{thm:master-safe}
+Assume on $[t,t+H]$ that:
+\begin{enumerate}[label=(\roman*)]
+\item the full and structurally reduced trajectories remain in a common tube on which the gradient vector field $g(\theta)=J_\theta^\ast e_\theta$ is $L_g$-Lipschitz, $\norm{J_\theta}_{\op}\le B_J$, and both residual norms are at most $B_e$;
+\item $\norm{D^2F(\theta_s)}\le B_H$ and $\norm{L_s}_{\op}\le B_L$;
+\item the prediction cluster $P_D(s)$ remains separated from the rest of $L_s$ by at least $\Delta_L>0$;
+\item the paired kept parameter cluster $Q_K(s)$ remains separated in $G_s=J_s^\ast J_s$ by at least $\Delta_G>0$.
+\end{enumerate}
+Let
+\[
+\Delta\R_{t,H}:=\R(\theta_t)-\R(\theta_{t+H})\le \R(\theta_t),
+\]
+\[
+V_L(t,H):=2B_HB_J\sqrt{H\Delta\R_{t,H}},
+\]
+and
+\[
+\overline E_D(t,H)
+:=E_D(t)
++B_e^2\left(1+\frac{2B_L}{\Delta_L}\right)V_L(t,H).
+\]
+Furthermore define
+\[
+\overline\delta_S(t,H)
+:=\delta_0+
+\frac{4B_HB_J}{\Delta_G}\sqrt{H\Delta\R_{t,H}}.
+\]
+If the post-contraction initial embedding error is $d_0=\norm{\theta_t-\widetilde\theta_t}$, then
+\[
+\boxed{
+\begin{aligned}
+\norm{\theta_{t+H}-\widetilde\theta_{t+H}}
+\le e^{L_gH}\Big[&d_0
++H\sqrt{\overline E_D(t,H)}\\
+&+\overline\delta_S(t,H)\sqrt{H\Delta\R_{t,H}}
+\Big].
+\end{aligned}}
+\]
+Consequently,
+\[
+\boxed{
+\begin{aligned}
+|\R(\theta_{t+H})-\R(\widetilde\theta_{t+H})|
+\le B_eB_Je^{L_gH}\Big[&d_0
++H\sqrt{\overline E_D(t,H)}\\
+&+\overline\delta_S(t,H)\sqrt{H\Delta\R_{t,H}}
+\Big].
+\end{aligned}}
+\]
+The same bracket multiplied by $B_J$ bounds the terminal prediction discrepancy.
+\end{theorem}
+
+\begin{proof}
+At any $s\in[t,t+H]$, structural transfer gives
+\[
+\norm{(I-S)g(\theta_s)}
+\le
+\norm{Q_D(s)g(\theta_s)}
++\norm{(I-S)Q_K(s)}_{\op}\norm{g(\theta_s)}.
+\]
+The first term is $\sqrt{E_D(s)}$. The spectral-persistence theorem yields
+\[
+E_D(s)\le\overline E_D(t,H).
+\]
+The fixed-structure persistence theorem gives
+\[
+\norm{(I-S)Q_K(s)}_{\op}
+\le\overline\delta_S(t,H).
+\]
+Therefore
+\[
+\int_t^{t+H}\norm{(I-S)g(\theta_s)}\,ds
+\le
+H\sqrt{\overline E_D(t,H)}
++\overline\delta_S(t,H)
+\int_t^{t+H}\norm{g(\theta_s)}\,ds.
+\]
+By exact loss dissipation,
+\[
+\int_t^{t+H}\norm{g(\theta_s)}^2ds
+=\Delta\R_{t,H},
+\]
+so Cauchy--Schwarz gives
+\[
+\int_t^{t+H}\norm{g(\theta_s)}ds
+\le\sqrt{H\Delta\R_{t,H}}.
+\]
+Finally, apply the nonlinear structural-flow Gr\"onwall theorem. Since
+$e^{L_g(t+H-s)}\le e^{L_gH}$, its weighted omitted-gradient integral is at most $e^{L_gH}$ times the preceding unweighted bound. The terminal prediction and risk inequalities then follow from the $B_J$-Lipschitz predictor bound and the residual bound exactly as in Theorem~\ref{thm:gronwall}.
+\end{proof}
+
+\begin{corollary}[Asymptotically safe compression regime]\label{cor:asymptotic-safe}
+Consider a sequence of contraction checkpoints for which, for a fixed horizon $H$ and uniformly bounded constants in Theorem~\ref{thm:master-safe},
+\[
+d_0\to0,
+\qquad
+E_D(t)\to0,
+\qquad
+\delta_0\to0,
+\qquad
+\Delta\R_{t,H}\to0.
+\]
+Then the terminal prediction and risk discrepancy between dense and structurally reduced training converges to zero.
+\end{corollary}
+
+\begin{proof}
+Every term in the bracket of Theorem~\ref{thm:master-safe} converges to zero under the stated uniform bounds.
+\end{proof}
+
+\begin{remark}[What the theorem does and does not certify]
+The theorem is not an eigenvalue threshold. It requires four distinct pieces of evidence: small target-weighted energy in the sector proposed for deletion, little reachable spectral motion over the decision horizon, a persistent gap that makes the sector observable, and a small structural-realization error. This is precisely why a small weight singular value, a small prediction eigenvalue, or a stable pruning mask alone cannot constitute the general certificate.
+\end{remark}
+
+\begin{remark}[Observable versus oracle quantities]
+The theorem is a population statement. In practice $E_D(t)$, gaps, target mass, and structural mismatch must be estimated. A method becomes certified only after adding finite-sample confidence bounds for these quantities. Plugging point estimates or extrapolated recent velocities into the theorem produces a useful controller proxy, not a theorem-level certificate.
+\end{remark}
