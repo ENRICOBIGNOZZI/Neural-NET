@@ -72,4 +72,65 @@ Thus the solvable model has an endogenous discovery phase followed by an asympto
 Part (i) follows because at least one teacher mode is, by definition of $\tau_{\rm sep}$, still absorbed in the bulk before the last crossing. For (ii), the phase theorem gives $b_+(t)\to0$ and $\omega_q(t)\to1$ for each fixed $q$; finiteness of $k$ lets one choose a common $T_\varepsilon$. It also gives $z_q(t)\to\theta_q>0$. Hence for sufficiently large $t$, $4b_+(t)<2\min_q\theta_q$ while $4z_q(t)>2\min_q\theta_q$ after increasing $T_\varepsilon$ if needed, so a separating threshold exists, proving (iii).
 \end{proof}
 
+\subsection{Why premature rank-one contraction creates a discovery delay}
+The preceding onset theorem concerns observability. In the rank-one teacher model one can go further and quantify the optimization price of contracting before a target direction has macroscopic overlap.
+
+\begin{proposition}[Exact target-angle dynamics after rank-one contraction]\label{prop:rankone-angle}
+Let the teacher be $A^\star=\theta uu^\top$ with $\theta>0$, and after a contraction let the student have one active column $w_s$, so $A_s=w_sw_s^\top$. Define
+\[
+\omega_s=\frac{(u^\top w_s)^2}{\norm{w_s}^2}\in[0,1].
+\]
+Under the exact population gradient flow
+\[
+\dot w_s=-2(w_sw_s^\top-A^\star)w_s,
+\]
+for every interval on which $0<\omega_s<1$,
+\[
+\boxed{
+\frac{1-\omega_{t+h}}{\omega_{t+h}}
+=
+\frac{1-\omega_t}{\omega_t}e^{-4\theta h}.}
+\]
+Therefore the additional time required to reach squared teacher overlap at least $1-\varepsilon$ is
+\[
+\boxed{
+T_\varepsilon(\omega_t)
+=
+\frac{1}{4\theta}
+\left[
+\log\frac{(1-\omega_t)(1-\varepsilon)}{\omega_t\varepsilon}
+\right]_+.}
+\]
+\end{proposition}
+
+\begin{proof}
+Decompose $w=cu+z$ with $z\perp u$ and write $q=\norm w^2$. The gradient flow gives
+\[
+\dot c=-2(q-\theta)c,
+\qquad
+\dot z=-2qz.
+\]
+Hence
+\[
+\frac{d}{ds}\log\frac{\norm z^2}{c^2}=-4\theta.
+\]
+Since $(1-\omega)/\omega=\norm z^2/c^2$, integration yields the odds identity. Solving the inequality $\omega_{t+h}\ge1-\varepsilon$ gives the hitting time.
+\end{proof}
+
+\begin{corollary}[Discovery-delay separation before and after spectral resolution]\label{cor:discovery-delay}
+At isotropic initialization, any fixed sample covariance eigenvector is Haar relative to an independent deterministic teacher direction. Its squared overlap satisfies $\omega_0=O_P(d^{-1})$. Consequently a blind rank-one contraction at initialization requires
+\[
+T_\varepsilon(\omega_0)
+=
+\frac{\log d}{4\theta}+O_P(1)
+\]
+additional population time to obtain constant teacher overlap. By contrast, if contraction is performed at a fixed supercritical checkpoint $t>\tau_{\theta,\gamma}$ and retains the teacher-associated outlier, Theorem~5.5 of the endogenous phase theory gives $\omega_t\to\omega(t)>0$, so $T_\varepsilon(\omega_t)=O(1)$. As $t\to\infty$, $\omega(t)\to1$ and the additional alignment delay vanishes.
+\end{corollary}
+
+\begin{proof}
+For a Haar unit vector $v$ independent of $u$, $d|u^\top v|^2$ is tight, so $\log(1/\omega_0)=\log d+O_P(1)$. Apply Proposition~\ref{prop:rankone-angle}. In the supercritical regime the outlier-overlap theorem supplies a nonzero deterministic limit, and its long-time limit is one.
+\end{proof}
+
+This result sharpens the meaning of ``do not prune too early.'' Premature contraction need not destroy the teacher forever: infinitesimal overlap can eventually be amplified. What it does is convert an order-one resolved feature into a dimension-dependent discovery delay. The BBP crossing is therefore a natural observability boundary for avoiding that delay, not a mystical universal threshold.
+
 The theorem does \emph{not} claim that a BBP threshold is a universal pruning rule for arbitrary networks. It establishes the exact mechanism in one nonlinear model and provides the theory-derived reason for a warm-up/separation phase.
