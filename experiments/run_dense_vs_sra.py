@@ -4,6 +4,15 @@ The controller sees train/probe information only. Test labels are used ex post.
 The first implementation contracts only the final hidden layer, where removing neurons is
 structurally exact and produces a real parameter/FLOP reduction. It is intentionally a pilot,
 not a claim of universal acceleration.
+
+At the first contraction checkpoint we also fork two dense controls:
+
+* optimizer-reset: same dense network, fresh AdamW state, no readout solve;
+* readout-refit: same dense network, ridge-solve the readout, then fresh AdamW state.
+
+The adaptive branch receives the same ridge-readout action after physical contraction.  Thus
+adaptive versus readout-refit isolates the structural contraction more cleanly than adaptive
+versus the uninterrupted dense baseline alone.
 """
 
 from __future__ import annotations
@@ -23,6 +32,7 @@ from sklearn.preprocessing import StandardScaler
 
 from neural_net.controller import ContractionConfig, FeatureSpanContractionController
 from neural_net.models import ContractibleMLP, num_parameters
+from neural_net.readout import fit_ridge_readout
 
 
 def load_task(name: str, seed: int):
@@ -101,6 +111,7 @@ def run(dataset: str, seed: int, lr: float, steps: int, width: int):
         rank_stride=4,
         persistence=2,
         ridge=1e-3,
+        future_horizon_steps=40,
     )
     controller = FeatureSpanContractionController(cfg)
 
@@ -109,13 +120,19 @@ def run(dataset: str, seed: int, lr: float, steps: int, width: int):
     contraction_decision = None
     dense_reset = None
     dense_reset_opt = None
+    dense_refit = None
+    dense_refit_opt = None
 
     dense_param_steps = 0
     adaptive_param_steps = 0
     dense_reset_param_steps = 0
+    dense_refit_param_steps = 0
     controller_seconds = 0.0
+    action_seconds = 0.0
     dense_seconds = 0.0
     adaptive_seconds = 0.0
+    dense_reset_seconds = 0.0
+    dense_refit_seconds = 0.0
 
     checkpoints = []
     for t in range(1, steps + 1):
@@ -130,8 +147,16 @@ def run(dataset: str, seed: int, lr: float, steps: int, width: int):
         adaptive_param_steps += num_parameters(adaptive)
 
         if dense_reset is not None:
+            tic = time.perf_counter()
             step(dense_reset, dense_reset_opt, xtr, ytr)
+            dense_reset_seconds += time.perf_counter() - tic
             dense_reset_param_steps += num_parameters(dense_reset)
+
+        if dense_refit is not None:
+            tic = time.perf_counter()
+            step(dense_refit, dense_refit_opt, xtr, ytr)
+            dense_refit_seconds += time.perf_counter() - tic
+            dense_refit_param_steps += num_parameters(dense_refit)
 
         if (not contracted) and t % cfg.checkpoint_interval == 0:
             tic = time.perf_counter()
@@ -145,16 +170,26 @@ def run(dataset: str, seed: int, lr: float, steps: int, width: int):
                 contraction_step = t
                 contraction_decision = decision
 
-                # Optimizer-reset control: same checkpoint, same width, fresh AdamW state.
+                # Fork full-width controls from exactly the same pre-contraction state.
                 dense_reset = copy.deepcopy(adaptive)
+                dense_refit = copy.deepcopy(adaptive)
                 dense_reset_opt = torch.optim.AdamW(
                     dense_reset.parameters(), lr=lr, weight_decay=1e-4
                 )
 
+                tic = time.perf_counter()
+                fit_ridge_readout(dense_refit, xtr, ytr, alpha=cfg.ridge)
+                dense_refit_opt = torch.optim.AdamW(
+                    dense_refit.parameters(), lr=lr, weight_decay=1e-4
+                )
+
+                # Physical neuron contraction, followed by the same frozen-readout solve.
                 adaptive = adaptive.contracted_copy(decision.keep_indices)
+                fit_ridge_readout(adaptive, xtr, ytr, alpha=cfg.ridge)
                 adaptive_opt = torch.optim.AdamW(
                     adaptive.parameters(), lr=lr, weight_decay=1e-4
                 )
+                action_seconds += time.perf_counter() - tic
                 contracted = True
 
     dense_test = evaluate(dense, xt, yt)
@@ -162,6 +197,7 @@ def run(dataset: str, seed: int, lr: float, steps: int, width: int):
     dense_probe = evaluate(dense, xp, yp)
     adaptive_probe = evaluate(adaptive, xp, yp)
     reset_test = evaluate(dense_reset, xt, yt) if dense_reset is not None else None
+    refit_test = evaluate(dense_refit, xt, yt) if dense_refit is not None else None
 
     result = {
         "dataset": dataset,
@@ -182,13 +218,19 @@ def run(dataset: str, seed: int, lr: float, steps: int, width: int):
         "dense_probe_mse": dense_probe[0],
         "adaptive_probe_mse": adaptive_probe[0],
         "dense_reset_test_mse": None if reset_test is None else reset_test[0],
+        "dense_refit_test_mse": None if refit_test is None else refit_test[0],
         "dense_param_steps": dense_param_steps,
         "adaptive_param_steps": adaptive_param_steps,
+        "dense_reset_param_steps": dense_reset_param_steps,
+        "dense_refit_param_steps": dense_refit_param_steps,
         "param_step_saving_fraction": 1 - adaptive_param_steps / dense_param_steps,
         "dense_train_seconds": dense_seconds,
         "adaptive_train_seconds": adaptive_seconds,
+        "dense_reset_train_seconds": dense_reset_seconds,
+        "dense_refit_train_seconds": dense_refit_seconds,
         "controller_seconds": controller_seconds,
-        "adaptive_total_seconds": adaptive_seconds + controller_seconds,
+        "action_seconds": action_seconds,
+        "adaptive_total_seconds": adaptive_seconds + controller_seconds + action_seconds,
         "contraction_decision": None if contraction_decision is None else {
             "proposed_rank": contraction_decision.proposed_rank,
             "full_accessibility": contraction_decision.full_accessibility,
@@ -196,6 +238,7 @@ def run(dataset: str, seed: int, lr: float, steps: int, width: int):
             "full_probe_mse": contraction_decision.full_probe_mse,
             "proposed_probe_mse": contraction_decision.proposed_probe_mse,
             "subspace_speed": contraction_decision.subspace_speed,
+            "future_accessibility_gain_proxy": contraction_decision.future_accessibility_gain_proxy,
             "effective_rank": contraction_decision.effective_rank,
         },
         "controller_config": asdict(cfg),
