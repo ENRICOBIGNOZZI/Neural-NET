@@ -107,9 +107,24 @@ def collect_run(
             else constant_speed_feature_value_proxy(q, speed, horizon)
         )
         reff = effective_rank(hp)
-        dense_current_probe, _ = evaluate(snapshot, xp, yp)
+        current_network_probe_mse, _ = evaluate(snapshot, xp, yp)
 
         order = target_greedy_neuron_order(htr, ytr.numpy())
+        # The horizon-zero dense branch is the fair current comparator: it receives
+        # exactly the same ridge-readout action as every structural candidate.
+        dense_current_refit = _branch_future(
+            snapshot,
+            None,
+            xtr,
+            ytr,
+            xp,
+            yp,
+            xt,
+            yt,
+            lr=lr,
+            ridge=ridge,
+            horizon=0,
+        )
         dense_future = _branch_future(
             snapshot,
             None,
@@ -131,7 +146,7 @@ def collect_run(
             q_candidate = accessibility_from_features(
                 hp[:, keep_idx], yp.numpy(), rank=min(resolved_rank, rank)
             )
-            candidate_current_probe = _branch_future(
+            candidate_current_refit = _branch_future(
                 snapshot,
                 keep_idx,
                 xtr,
@@ -176,9 +191,10 @@ def collect_run(
                     "future_accessibility_gain_proxy": future_proxy,
                     "saturation_ceiling": 1.0 - q,
                     "effective_rank": reff,
-                    "current_dense_probe_mse": dense_current_probe,
-                    "current_candidate_probe_mse_after_refit": candidate_current_probe["probe_mse"],
-                    "current_probe_damage": candidate_current_probe["probe_mse"] - dense_current_probe,
+                    "current_network_probe_mse": current_network_probe_mse,
+                    "current_dense_refit_probe_mse": dense_current_refit["probe_mse"],
+                    "current_candidate_refit_probe_mse": candidate_current_refit["probe_mse"],
+                    "current_probe_damage": candidate_current_refit["probe_mse"] - dense_current_refit["probe_mse"],
                     "future_dense_refit_probe_mse": dense_future["probe_mse"],
                     "future_reduced_probe_mse": reduced_future["probe_mse"],
                     "future_probe_damage": reduced_future["probe_mse"] - dense_future["probe_mse"],
