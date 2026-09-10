@@ -1,5 +1,6 @@
 """Safe spectral reduction research code."""
 
+from .bulk_readiness import BulkReadinessCertificate, bulk_is_geometrically_ready, bulk_readiness_certificate
 from .rank_factor import (
     RankContractibleMLP,
     RankFactorLinear,
@@ -36,4 +37,7 @@ __all__ = [
     "rank_factor_group_gradient_energy",
     "checkpoint_prediction_gap_certificate",
     "structural_group_prediction_gap_certificate",
+    "BulkReadinessCertificate",
+    "bulk_readiness_certificate",
+    "bulk_is_geometrically_ready",
 ]
