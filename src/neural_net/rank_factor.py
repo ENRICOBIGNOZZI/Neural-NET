@@ -67,6 +67,25 @@ class RankFactorLinear(nn.Module):
     def effective_weight(self) -> torch.Tensor:
         return (self.left * self.scale.unsqueeze(0)) @ self.right
 
+    def singular_values(self) -> torch.Tensor:
+        """Singular values of the represented weight matrix, in descending order."""
+        return torch.linalg.svdvals(self.effective_weight())
+
+    def singular_value_tail_fraction(self, target_rank: int, eps: float = 1e-18) -> torch.Tensor:
+        """Fraction of represented Frobenius energy beyond ``target_rank``.
+
+        This quantity is invariant to the rank-factor gauge and is exactly the
+        relative squared Frobenius error of the truncated-SVD rank-r approximation.
+        """
+        if target_rank < 1 or target_rank > min(self.rank, self.in_features, self.out_features):
+            raise ValueError("target_rank must be feasible and no larger than the current rank")
+        singular = self.singular_values()
+        energy = singular.square()
+        total = energy.sum()
+        if bool(total <= eps):
+            return torch.zeros((), device=total.device, dtype=total.dtype)
+        return energy[target_rank:].sum() / total
+
     def component_frobenius_norms(self) -> torch.Tensor:
         """Gauge-invariant Frobenius norm of each represented rank-one term."""
         left_norm = torch.linalg.vector_norm(self.left, dim=0)
@@ -116,6 +135,34 @@ class RankFactorLinear(nn.Module):
             new.left.copy_(self.left[:, idx])
             new.scale.copy_(self.scale[idx])
             new.right.copy_(self.right[idx, :])
+            if self.bias is not None:
+                new.bias.copy_(self.bias)
+        return new
+
+    def svd_contracted_copy(self, target_rank: int) -> "RankFactorLinear":
+        """Physically recompress the represented matrix by truncated SVD.
+
+        Unlike ``contracted_copy``, this does not require the learned signal to be
+        concentrated in pre-existing rank-factor coordinates.  It first forms the
+        effective weight W and then uses its Eckart--Young optimal rank-r Frobenius
+        approximation.  The returned module has genuinely fewer trainable factors.
+        """
+        max_rank = min(self.rank, self.in_features, self.out_features)
+        if target_rank < 1 or target_rank > max_rank:
+            raise ValueError("target_rank must be feasible and no larger than the current rank")
+
+        with torch.no_grad():
+            weight = self.effective_weight().detach()
+            left, singular, right = torch.linalg.svd(weight, full_matrices=False)
+            new = RankFactorLinear(
+                self.in_features,
+                self.out_features,
+                int(target_rank),
+                bias=self.bias is not None,
+            ).to(device=self.scale.device, dtype=self.scale.dtype)
+            new.left.copy_(left[:, :target_rank])
+            new.scale.copy_(singular[:target_rank])
+            new.right.copy_(right[:target_rank, :])
             if self.bias is not None:
                 new.bias.copy_(self.bias)
         return new
@@ -211,5 +258,18 @@ class RankContractibleMLP(nn.Module):
         ).to(device=self.hidden2.scale.device, dtype=self.hidden2.scale.dtype)
         new.hidden1.load_state_dict(copy.deepcopy(self.hidden1.state_dict()))
         new.hidden2 = self.hidden2.contracted_copy(idx)
+        new.out.load_state_dict(copy.deepcopy(self.out.state_dict()))
+        return new
+
+    def svd_contracted_rank_copy(self, target_rank: int) -> "RankContractibleMLP":
+        """Recompress the contractible hidden map to its best rank-r SVD approximation."""
+        new = RankContractibleMLP(
+            self.hidden1.in_features,
+            self.hidden1.out_features,
+            self.hidden2.out_features,
+            int(target_rank),
+        ).to(device=self.hidden2.scale.device, dtype=self.hidden2.scale.dtype)
+        new.hidden1.load_state_dict(copy.deepcopy(self.hidden1.state_dict()))
+        new.hidden2 = self.hidden2.svd_contracted_copy(target_rank)
         new.out.load_state_dict(copy.deepcopy(self.out.state_dict()))
         return new
