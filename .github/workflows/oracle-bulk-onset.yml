@@ -8,6 +8,7 @@ jobs:
   sweep:
     if: contains(github.event.head_commit.message, '[bulk-onset]')
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -18,11 +19,11 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -e '.[dev]'
-      - name: Run oracle onset sweep
+      - name: Run robust oracle onset sweep
         run: >-
           python experiments/run_oracle_bulk_onset_sweep.py
-          --seeds 0 1 2
-          --checkpoints 0 20 40 60 80 120
+          --seeds 0 1 2 3 4 5 6 7 8 9
+          --checkpoints 0 10 20 30 40 50 60 70 80 90 100 110 120
           --horizon 40
       - name: Upload oracle onset audit
         uses: actions/upload-artifact@v4
