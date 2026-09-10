@@ -1,0 +1,190 @@
+\section{When the spectral bulk is ready to be removed}
+The general checkpoint certificate treats an arbitrary discarded spectral cluster.  For the central use case of this paper we can say more.  The proposed deleted set is the lower spectral bulk, while the resolved outliers are kept.  This structure gives a second, target-mass-based envelope on the future value of the bulk and makes the question ``when should the bulk be removed?'' mathematically explicit.
+
+Fix a checkpoint $t$.  Suppose the spectrum of the positive prediction operator $L_t$ is split into a lower cluster
+\[
+\sigma_B(L_t)\subset[0,b_t]
+\]
+and a resolved upper cluster
+\[
+\sigma_S(L_t)\subset[s_t,\infty),
+\qquad
+\Delta_t:=s_t-b_t>0.
+\]
+Let $P_B(t)$ be the spectral projector of the lower cluster and let $P_B(s)$ denote its Riesz continuation as long as the gap stays open.  Define the residual target mass and gradient energy in the bulk by
+\[
+M_B(s):=\norm{P_B(s)e_s}^2,
+\qquad
+E_B(s):=\ip{e_s}{L_sP_B(s)e_s}.
+\]
+The distinction is important: $M_B$ asks how much unresolved target residual lies in the bulk, whereas $E_B$ asks how much instantaneous loss dissipation that mass can buy through the current eigenvalues.
+
+\begin{theorem}[Target-mass persistence of an isolated lower bulk]\label{thm:bulk-mass}
+Assume on $[t,t+H]$ that $L_s$ is differentiable and positive semidefinite, $\norm{e_s}\le B_e$, and
+\[
+\Gamma_{t,H}:=\int_t^{t+H}\norm{\dot L_s}_{\op}\,ds
+<\frac{\Delta_t}{2}.
+\]
+Then throughout the horizon:
+\begin{enumerate}[label=(\roman*)]
+\item the lower and upper clusters remain separated by at least
+\[
+\underline\Delta_t(H):=\Delta_t-2\Gamma_{t,H}>0;
+\]
+\item the upper edge of the continued bulk obeys
+\[
+\lambda_{\max}(L_s|_{\Ran P_B(s)})\le b_t+\Gamma_{t,H};
+\]
+\item the bulk projector path length obeys
+\[
+\int_t^{t+H}\norm{\dot P_B(s)}_{\op}\,ds
+\le
+\frac{2\Gamma_{t,H}}{\underline\Delta_t(H)};
+\]
+\item the target mass that can enter the bulk is bounded by
+\[
+\boxed{
+M_B(s)
+\le
+\overline M_B(t,H)
+:=M_B(t)+
+\frac{2B_e^2\Gamma_{t,H}}{\underline\Delta_t(H)};}
+\]
+\item consequently the entire future bulk gradient energy satisfies
+\[
+\boxed{
+E_B(s)
+\le
+\overline E_B^{\rm mass}(t,H)
+:=(b_t+\Gamma_{t,H})\overline M_B(t,H).}
+\]
+In particular,
+\[
+\boxed{
+\int_t^{t+H}E_B(s)\,ds
+\le H\overline E_B^{\rm mass}(t,H),
+\qquad
+\int_t^{t+H}\sqrt{E_B(s)}\,ds
+\le H\sqrt{\overline E_B^{\rm mass}(t,H)}.}
+\]
+\end{theorem}
+
+\begin{proof}
+For every $h\le H$,
+\[
+\norm{L_{t+h}-L_t}_{\op}
+\le
+\int_t^{t+h}\norm{\dot L_s}_{\op}ds
+\le\Gamma_{t,H}.
+\]
+Weyl's perturbation inequality therefore moves the upper edge of the lower cluster upward by at most $\Gamma_{t,H}$ and the lower edge of the upper cluster downward by at most the same amount.  This proves (i)--(ii).  Along the resulting isolated Riesz cluster,
+\[
+\norm{\dot P_B(s)}_{\op}
+\le
+\frac{2\norm{\dot L_s}_{\op}}{\underline\Delta_t(H)},
+\]
+which integrates to (iii).
+
+Now differentiate $M_B=\ip e{P_Be}$.  Since $\dot e=-Le$ and $P_B$ commutes with $L$,
+\[
+\dot M_B
+=-2\ip{P_Be}{LP_Be}+\ip e{\dot P_Be}
+\le
+\norm e^2\norm{\dot P_B}_{\op}.
+\]
+The first term is nonpositive because $L\succeq0$.  Integrating, using $\norm e\le B_e$, and applying (iii) gives (iv).  Finally,
+\[
+E_B(s)=\ip{P_Be_s}{L_sP_Be_s}
+\le
+\lambda_{\max}(L_s|_{\Ran P_B(s)})M_B(s),
+\]
+so (ii) and (iv) imply (v).  The two integral bounds follow immediately from the uniform pointwise envelope.
+\end{proof}
+
+\begin{remark}[The bulk is a discovery reservoir before it is nuisance]
+The theorem gives a precise version of the central intuition.  A small bulk edge $b_t$ is not enough for deletion.  Early in training, $\Gamma_{t,H}$ can be large, the gap may not be persistent, and a substantial amount of target mass can still rotate into the lower cluster.  Only after the outliers are separated and the reachable projector path becomes small does the same lower bulk acquire a uniformly small future gradient-energy budget.
+\end{remark}
+
+The target-mass envelope complements the discarded-energy envelope in Theorem~\ref{thm:checkpoint-certificate}.  For a lower bulk we may use whichever valid envelope is tighter.  Using the notation of that theorem, let
+\[
+V=2B_H\overline B_JA,
+\qquad
+\underline\Delta_L=\Delta_{L,0}-2V,
+\]
+and suppose $\underline\Delta_L>0$.  Since the dense residual norm is bounded by $B_e=\sqrt{2\R(\theta_t)}$, define
+\[
+\overline M_B^{\rm chk}
+:=M_B(t)+\frac{2B_e^2V}{\underline\Delta_L},
+\]
+\[
+\overline E_B^{\rm mass,chk}
+:=(b_t+V)\overline M_B^{\rm chk}.
+\]
+The existing energy-persistence argument gives
+\[
+\overline E_B^{\rm energy,chk}
+:=E_B(t)+B_e^2
+\left(1+\frac{2\overline B_L}{\underline\Delta_L}\right)V.
+\]
+Both are valid uniform upper bounds on $E_B(s)$, hence so is
+\[
+\boxed{
+\overline E_B^{\rm chk}
+:=\min\left\{
+\overline E_B^{\rm energy,chk},
+\overline E_B^{\rm mass,chk}
+\right\}.}
+\]
+
+\begin{corollary}[Checkpoint bulk-readiness certificate]\label{cor:bulk-readiness}
+Under the assumptions of Theorem~\ref{thm:checkpoint-certificate}, specialize the discarded prediction cluster to the isolated lower bulk above and replace $\overline E_D$ there by $\overline E_B^{\rm chk}$.  Then the omitted-gradient path obeys the sharper bound
+\[
+\boxed{
+\mathfrak G_B(t,H;S)
+:=H\sqrt{\overline E_B^{\rm chk}}
++\delta_0A
++\frac{2B_H\overline B_J}{\underline\Delta_G}A^2,}
+\]
+and the terminal prediction discrepancy satisfies
+\[
+\boxed{
+\mathfrak D_B(t,H;S)
+:=B_{J,\mathrm{tube}}e^{L_gH}
+\left[d_0+\mathfrak G_B(t,H;S)\right].}
+\]
+Thus a lower spectral bulk is geometrically ready for structural deletion over horizon $H$ only when the gap-persistence gate is open and $\mathfrak D_B(t,H;S)$ is inside the predeclared prediction-damage budget.
+\end{corollary}
+
+\begin{proof}
+The proof of Theorem~\ref{thm:checkpoint-certificate} uses $\overline E_D$ only as a uniform upper bound on $E_D(s)$.  Theorem~\ref{thm:bulk-mass} supplies a second valid uniform bound for a lower cluster, so their minimum may be substituted without changing any subsequent step.  Structural transfer and Gr\"onwall then give the displayed quantities.
+\end{proof}
+
+\begin{definition}[Geometric bulk-onset time]\label{def:bulk-onset}
+Fix a horizon $H$, a family of realizable structural actions $S_t$, and tolerances $\varepsilon_{\rm value},\varepsilon_{\rm pred}>0$.  The geometric onset time is
+\[
+\boxed{
+\tau_{\rm bulk}
+:=\inf\left\{t:\begin{array}{l}
+\underline\Delta_L(t,H)>0,\quad \underline\Delta_G(t,H)>0,\\[2pt]
+H\overline E_B^{\rm chk}(t,H)\le\varepsilon_{\rm value},\\[2pt]
+\mathfrak D_B(t,H;S_t)\le\varepsilon_{\rm pred}
+\end{array}\right\}.}
+\]
+This is a population geometric onset, not yet the final algorithmic trigger.  The irreversible contraction is executed only after the finite-sample observability and compute-value gates also pass.
+\end{definition}
+
+\begin{remark}[What the onset means]
+The first line says that ``bulk'' and ``outliers'' are predicted to remain identifiable over the decision horizon.  The second says that, even along the dense trajectory, the lower cluster can buy only a small amount of future loss decrease.  The third says that actually removing the corresponding structural capacity cannot move the future predictor by more than the declared amount.  The later finite-sample UCB then asks whether this small predicted damage is observable tightly enough to trade it against real compute savings.
+\end{remark}
+
+\begin{remark}[Why this is not an eigenvalue threshold]
+If $b_t$ is tiny but $M_B(t)$ is large, the bulk can still matter.  If both are tiny but $V$ is large, hidden signal can still rotate into it.  If all prediction-space quantities are favorable but the structural mismatch $\delta_0$ or contraction jump $d_0$ is large, the physical deletion can still be unsafe.  The rule is therefore
+\[
+\boxed{
+\text{resolved bulk}
++\text{small target mass/value}
++\text{small reachable motion}
++\text{small structural mismatch}
+\Longrightarrow
+\text{ready to test for deletion}.}
+\]
