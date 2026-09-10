@@ -1,0 +1,35 @@
+name: SVD structural bridge sweep
+
+on:
+  push:
+    branches: [research/safe-spectral-reduction]
+
+jobs:
+  sweep:
+    if: contains(github.event.head_commit.message, '[svd-bridge]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[dev]'
+      - name: Run SVD structural bridge sweep
+        run: >-
+          python experiments/run_svd_structural_bridge_sweep.py
+          --seeds 0 1 2 3 4 5 6 7 8 9
+          --target-ranks 2 3 4
+          --checkpoints 0 10 20 30 40 50 60 70 80 90 100 110 120
+          --horizon 40
+          --damage-abs-tol 0.001
+          --damage-rel-tol 0.05
+      - name: Upload SVD structural bridge audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: svd-structural-bridge-sweep
+          path: results/svd_structural_bridge_sweep.json
