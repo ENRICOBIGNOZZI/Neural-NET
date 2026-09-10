@@ -1,0 +1,249 @@
+\section{Finite-sample observability of structural damage}
+The population master theorem is useful only if the risk price of a structural action can be resolved from data. The first counterfactual audit shows that this is not automatic: when the structural effect is small, two finite evaluation samples can even disagree on its sign. The correct finite-sample object is therefore the \emph{paired} loss difference, not two separately estimated risks.
+
+Fix a checkpoint and a finite candidate family of structural actions $S_1,\ldots,S_M$. For candidate $m$, let $f_m$ denote the predictor obtained after the declared contraction/readout/training protocol over horizon $H$, and let $f_0$ denote the matched dense continuation. Assume these predictors are constructed without using an independent probe $\mathcal P=\{Z_i\}_{i=1}^n$. Let $\ell_B\in[0,B]$ be a bounded or clipped evaluation loss and define
+\[
+Z_{i,m}:=\ell_B(f_m,Z_i)-\ell_B(f_0,Z_i)\in[-B,B].
+\]
+The population structural damage and its paired probe estimate are
+\[
+D_m:=\mathbb E Z_{i,m},
+\qquad
+\widehat D_m:=\frac1n\sum_{i=1}^n Z_{i,m}.
+\]
+Let
+\[
+\widehat v_m:=\frac1{n-1}\sum_{i=1}^n(Z_{i,m}-\widehat D_m)^2
+\]
+be the empirical variance of the paired differences.
+
+\begin{theorem}[Uniform paired empirical-Bernstein structural-damage bound]\label{thm:paired-damage}
+Suppose $n\ge2$. With probability at least $1-\delta$ over the independent probe, simultaneously for all $m=1,\ldots,M$,
+\[
+\boxed{
+D_m
+\le
+\widehat D_m
++
+\sqrt{\frac{2\widehat v_m\log(2M/\delta)}{n}}
++
+\frac{14B\log(2M/\delta)}{3(n-1)}.
+}
+\]
+The same bound applied to $-Z_{i,m}$ gives a simultaneous two-sided confidence interval with the corresponding union-bound adjustment.
+\end{theorem}
+
+\begin{proof}
+For each $m$, transform the paired variable to
+\[
+Y_{i,m}:=\frac{Z_{i,m}+B}{2B}\in[0,1].
+\]
+Its empirical variance is $\widehat v_m/(4B^2)$. The empirical Bernstein inequality gives, with failure probability $\delta/M$,
+\[
+\mathbb E Y_m
+\le
+\overline Y_m
++
+\sqrt{\frac{2\widehat{\mathrm{Var}}(Y_m)\log(2M/\delta)}{n}}
++
+\frac{7\log(2M/\delta)}{3(n-1)}.
+\]
+Multiplying by $2B$ and subtracting $B$ yields the displayed inequality. A union bound over $m$ completes the proof.
+\end{proof}
+
+\begin{corollary}[Finite-sample safe structural action]\label{cor:paired-safe}
+Let $b_m\ge0$ be a predeclared admissible population risk budget for candidate $m$, possibly equal to its risk-equivalent compute value. Define
+\[
+U_m
+:=
+\widehat D_m
++
+\sqrt{\frac{2\widehat v_m\log(2M/\delta)}{n}}
++
+\frac{14B\log(2M/\delta)}{3(n-1)}.
+\]
+On the event of Theorem~\ref{thm:paired-damage}, every candidate satisfying
+\[
+\boxed{U_m\le b_m}
+\]
+has population structural damage $D_m\le b_m$. In particular, if $b_m=\tau\Delta C_m$ is the risk-equivalent value of its measured future compute saving, then $U_m<\tau\Delta C_m$ is a finite-sample sufficient condition for compute-aware dominance among the declared candidate continuations.
+\end{corollary}
+
+\begin{proof}
+Immediate from Theorem~\ref{thm:paired-damage} and the definition of $b_m$. The compute-aware specialization substitutes the same risk/compute budget used in Corollary~\ref{cor:compute-dominance}.
+\end{proof}
+
+\begin{remark}[Why pairing matters]
+The dense and reduced predictors are evaluated on the same examples. The variance entering the certificate is therefore
+\[
+\mathrm{Var}\!\left(\ell_B(f_m,Z)-\ell_B(f_0,Z)\right),
+\]
+not the sum of two unrelated risk-estimation variances. When the two predictors make highly correlated errors, this paired variance can be much smaller. The structural-decision problem should exploit that cancellation.
+\end{remark}
+
+\subsection{A distribution-free observability barrier}
+The preceding theorem is valid but can be operationally useless when the structural effect is tiny relative to the global loss range. This is not merely a loose constant in one concentration inequality. There is a rare-event obstruction for \emph{every} distribution-free certificate that knows only a global range.
+
+\begin{proposition}[Rare-event lower barrier for bounded-risk certification]\label{prop:range-barrier}
+Let $U_n(Z_1,\ldots,Z_n)$ be any deterministic one-sided upper confidence bound satisfying
+\[
+\Pr_P\!\left\{\mathbb E_P Z\le U_n(Z_1,\ldots,Z_n)\right\}\ge1-\delta
+\]
+for every distribution $P$ supported on $[-R,R]$. Then on the all-zero sample path,
+\[
+\boxed{
+U_n(0,\ldots,0)
+\ge
+R\left(1-\delta^{1/n}\right).
+}
+\]
+Consequently, to make certification at budget $b<R$ even possible on an all-zero probe, it is necessary that
+\[
+\boxed{
+n\ge
+\frac{\log\delta}{\log(1-b/R)}
+\sim
+\frac{R}{b}\log\frac1\delta
+\qquad (b/R\downarrow0).
+}
+\]
+\end{proposition}
+
+\begin{proof}
+Suppose $U_n(0,\ldots,0)<R(1-\delta^{1/n})$. Choose
+\[
+\frac{U_n(0,\ldots,0)}R<p<1-\delta^{1/n}
+\]
+and let $P_p$ put mass $p$ at $R$ and $1-p$ at $0$. Then $\mathbb E_{P_p}Z=pR>U_n(0,\ldots,0)$, while the all-zero sample occurs with probability $(1-p)^n>\delta$. Hence the claimed $(1-\delta)$ coverage fails. The sample-size inequality is obtained by requiring $R(1-\delta^{1/n})\le b$ and solving for $n$; the asymptotic expression follows from $\log(1-x)\sim-x$.
+\end{proof}
+
+\begin{remark}[Interpretation]
+A probe containing no visible damage is still compatible with a rare event of probability of order $\log(1/\delta)/n$ carrying loss difference of order $R$. Thus no amount of variance cancellation on the observed sample removes the $R/n$ obstruction without additional information. The correct response is not threshold tuning; it is to localize the plausible structural-damage scale using the geometry of the contraction.
+\end{remark}
+
+\subsection{Geometry-localized observability}
+For clipped square loss, the master prediction-gap theorem supplies exactly the additional information needed to localize the paired loss difference.
+
+Define
+\[
+\ell_B(a,y):=\min\{(a-y)^2,B\}.
+\]
+
+\begin{lemma}[Prediction gap controls paired-loss second moment]\label{lem:loss-gap-moment}
+For every $a,b,y\in\mathbb R$,
+\[
+|\ell_B(a,y)-\ell_B(b,y)|
+\le
+2\sqrt B\,|a-b|.
+\]
+Consequently, if predictors $f_m,f_0$ satisfy
+\[
+\norm{f_m-f_0}_{L^2(P_X)}\le d_m,
+\]
+then their paired clipped-loss difference obeys
+\[
+\boxed{
+\mathbb E Z_m^2
+\le
+M_{2,m}:=\min\{B^2,4Bd_m^2\}.
+}
+\]
+\end{lemma}
+
+\begin{proof}
+The scalar function $r\mapsto\min\{r^2,B\}$ is globally $2\sqrt B$-Lipschitz: on $|r|<\sqrt B$ its derivative has magnitude at most $2\sqrt B$, and outside that interval it is constant. Apply this with $r=a-y$ and $r=b-y$. Squaring and averaging gives $\mathbb E Z_m^2\le4B\mathbb E(f_m-f_0)^2$. The trivial bound $|Z_m|\le B$ gives the minimum with $B^2$.
+\end{proof}
+
+A second-moment bound alone does not imply a smaller almost-sure range, but it can be converted into one after deterministic truncation while paying an explicit tail remainder.
+
+For $c\in(0,B]$ write
+\[
+T_c(z):=\max\{-c,\min\{z,c\}\},
+\qquad
+W_{i,m}^{(c)}:=T_c(Z_{i,m}).
+\]
+
+\begin{theorem}[Truncated second-moment localized structural-damage bound]\label{thm:localized-damage}
+Suppose that, before observing the probe, deterministic bounds $M_{2,m}\ge\mathbb E Z_m^2$ and truncation levels $c_m\in(0,B]$ are fixed for $m=1,\ldots,M$. Let $\widehat W_m$ and $\widehat v_{m,c}$ denote the empirical mean and unbiased variance of $W_{i,m}^{(c_m)}$. Then with probability at least $1-\delta$, simultaneously for all candidates,
+\[
+\boxed{
+\begin{aligned}
+D_m\le
+\widehat W_m
+&+\sqrt{\frac{2\widehat v_{m,c}\log(2M/\delta)}{n}}
++\frac{14c_m\log(2M/\delta)}{3(n-1)}\\
+&+\mathbf 1\{c_m<B\}\frac{M_{2,m}}{4c_m}.
+\end{aligned}}
+\]
+If $c_m=B$, the result reduces to the ordinary paired empirical-Bernstein certificate. If $c_m<B$, the deterministic truncation scale may be much smaller than the global loss range.
+\end{theorem}
+
+\begin{proof}
+For $c<B$ and every real $z$,
+\[
+z\le T_c(z)+\frac{z^2}{4c}.
+\]
+Indeed the inequality is immediate for $z\le c$ because truncation of the negative tail only increases $z$. For $z>c$ it is equivalent to
+\[
+z-c\le\frac{z^2}{4c},
+\]
+which follows from $(z-2c)^2\ge0$. Therefore
+\[
+D_m=\mathbb E Z_m
+\le
+\mathbb E W_m^{(c_m)}+\frac{M_{2,m}}{4c_m}.
+\]
+Now $W_m^{(c_m)}\in[-c_m,c_m]$, so the same empirical-Bernstein argument as in Theorem~\ref{thm:paired-damage}, followed by a union bound over the fixed candidate family, gives the first three terms. When $c_m=B$, no truncation occurs and no moment remainder is needed.
+\end{proof}
+
+The deterministic range term and moment remainder can be balanced without looking at the probe. Ignoring the empirical-variance term, the minimizer is
+\[
+\boxed{
+c_m^\star
+=
+\min\left\{
+B,
+\sqrt{\frac{3(n-1)M_{2,m}}{56\log(2M/\delta)}}
+\right\}.}
+\]
+When the cap does not bind, the two deterministic terms collapse to
+\[
+\sqrt{\frac{14M_{2,m}\log(2M/\delta)}{3(n-1)}}.
+\]
+Thus a small theory-derived second moment converts the global $B/n$ obstruction into a local scale of order $\sqrt{M_{2,m}/n}$.
+
+\begin{corollary}[Geometry-localized finite-sample certificate]\label{cor:geometry-localized}
+Let $\mathfrak D_{t,H}(S_m)$ denote the terminal $L^2(P_X)$ prediction-discrepancy upper bound supplied by Theorem~\ref{thm:master-safe} for structural action $S_m$; explicitly it is the bracket in that theorem multiplied by $B_J$. Set
+\[
+M_{2,m}^{\rm geom}
+:=
+\min\left\{B^2,4B\mathfrak D_{t,H}(S_m)^2\right\}.
+\]
+Then Theorem~\ref{thm:localized-damage} with $M_{2,m}=M_{2,m}^{\rm geom}$ gives a valid finite-sample upper bound on the population clipped-loss structural damage. A candidate is certified whenever this localized UCB is below its predeclared risk/compute budget.
+\end{corollary}
+
+\begin{proof}
+The master theorem bounds the terminal prediction discrepancy in the prediction Hilbert norm. Apply Lemma~\ref{lem:loss-gap-moment}, then Theorem~\ref{thm:localized-damage}.
+\end{proof}
+
+\begin{remark}[What changed]
+The generic probe certificate asks the data to rule out every bounded rare-event distribution. That is unnecessarily pessimistic after the geometry has already certified that dense and reduced predictors must stay close in $L^2$. The localized theorem uses the population geometry to constrain the second moment and uses the independent probe only to resolve the remaining signed risk difference. This creates a direct bridge
+\[
+\boxed{
+\text{spectral safety}
+\;\longrightarrow\;
+\text{prediction-gap control}
+\;\longrightarrow\;
+\text{localized observability}
+\;\longrightarrow\;
+\text{compute decision}.}
+\]
+\end{remark}
+
+\begin{remark}[Why a good probe forecaster can still be useless]
+A model may predict $\widehat D_m$ accurately across checkpoints while $\widehat D_m$ itself is too noisy to resolve $D_m$. The relevant decision object is therefore an upper confidence bound, not point-prediction $R^2$. This distinction is exactly what the small development audit exposed.
+\end{remark}
+
+\begin{remark}[Adaptive use of the probe]
+All candidate families, moment bounds, and truncation levels above are fixed independently of the probe on which the bound is evaluated. If the same probe is used to alter future network parameters or repeatedly construct new candidates, that independence is lost. The fresh-probe oracle in the next section is one clean remedy; cross-fitting, stability, confidence-sequence, or reusable-holdout arguments are alternatives.
+\end{remark}

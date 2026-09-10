@@ -1,0 +1,244 @@
+\section{Exact current sufficiency for the final hidden layer}
+The final hidden layer followed by a scalar linear readout gives the cleanest structural case. Let
+\[
+h_t:\mathcal X\to\mathbb R^m,
+\qquad
+(T_t\beta)(x)=\beta^\top h_t(x),
+\]
+with representation span $\mathcal S_t=\Ran(T_t)$. Let $C_t=T_t^\ast T_t=\mathbb E[h_th_t^\top]$ and $K_t=T_tT_t^\ast$. Their positive spectra coincide.
+
+For a neuron subset $I\subset\{1,\ldots,m\}$ let $T_{t,I}$ keep only those coordinates and let $P_t,P_{t,I}$ denote the corresponding prediction-space projectors.
+
+\begin{proposition}[Exact current cost of neuron contraction]\label{prop:neuron-cost}
+The increase in population risk of the optimal frozen linear readout caused by retaining only $I$ is
+\[
+\boxed{
+D_t(I)=\norm{(P_t-P_{t,I})f^\star}^2\ge0.}
+\]
+If $\Ran(T_{t,I})=\Ran(T_t)$, then $D_t(I)=0$.
+\end{proposition}
+
+\begin{proof}
+The optimal frozen-readout excess risk in a representation span $\mathcal S$ is
+$\norm{(I-P_\mathcal S)f^\star}^2$. Since $\Ran(T_{t,I})\subseteq\Ran(T_t)$, the projectors are nested and Pythagoras yields the difference $\norm{(P_t-P_{t,I})f^\star}^2$.
+\end{proof}
+
+\begin{theorem}[A rank-$r$ representation contains an exact $r$-neuron basis]\label{thm:subset-basis}
+If $\mathrm{rank}(T_t)=r< m$, there exists a subset $I$ of exactly $r$ neuron coordinates such that
+\[
+\Ran(T_{t,I})=\Ran(T_t).
+\]
+Therefore the current optimal frozen-readout risk is preserved exactly after deleting $m-r$ neurons.
+\end{theorem}
+
+\begin{proof}
+The $m$ coordinate feature functions $h_{t,1},\ldots,h_{t,m}$ span the $r$-dimensional space $\Ran(T_t)$. Every finite spanning set contains a basis subset of size $r$.
+\end{proof}
+
+\begin{remark}[Why not immediately compress to one feature?]
+For a single scalar target, if the population-optimal readout coefficient were known, one could collapse the \emph{current predictor} into the scalar feature $\beta_t^{\star\top}h_t$. That does not preserve future feature-learning capacity. The relevant object for training-time contraction is therefore not current predictive sufficiency alone but \emph{current sufficiency plus a bound on future discovery value}. This is the central difference between deployment compression and training-time contraction.
+\end{remark}
+
+\section{The onset of safe reduction in the exact quadratic phase model}
+The endogenous spectral-geometry theory contains a solvable nonlinear teacher--student model in which the onset question can be stated without a pruning heuristic. The learned covariance obeys
+\[
+\dot A_t=2(A^\star A_t+A_tA^\star)-4A_t^2
+\]
+and has the exact solution
+\[
+A_t=E_t(A_0^{-1}+F_t)^{-1}E_t,
+\qquad
+E_t=e^{2tA^\star},
+\qquad
+F_t=4\int_0^t e^{4sA^\star}\,ds.
+\]
+For Wishart initialization with $d/m\to\gamma\in(0,1)$, write
+\[
+\lambda_\pm=(1\pm\sqrt\gamma)^2,
+\qquad
+g_t(x)=\frac{x}{1+4tx},
+\qquad
+b_\pm(t)=g_t(\lambda_\pm).
+\]
+The null covariance bulk is exactly the pushforward $(g_t)_\#\mathrm{MP}_\gamma$ and
+\[
+\boxed{b_+(t)=\frac{\lambda_+}{1+4t\lambda_+}\sim\frac1{4t}.}
+\]
+Thus the extensive random bulk contracts to zero during training.
+
+For a teacher eigenvalue $\theta>0$, define
+\[
+r_\theta(t)=e^{4\theta t},
+\qquad
+\chi_{\theta,\gamma}(t)
+=
+\frac{
+[r_\theta(t)-1]\,[1+4t\lambda_+-\lambda_+/\theta]+4t\lambda_+
+}{\sqrt\gamma}.
+\]
+A direct differentiation yields
+\[
+\chi'_{\theta,\gamma}(t)
+=
+\frac{4\theta r_\theta(t)(1+4t\lambda_+)}{\sqrt\gamma}>0.
+\]
+Hence the exact dynamic-BBP time is the unique
+\[
+\boxed{\tau_{\theta,\gamma}=\chi_{\theta,\gamma}^{-1}(1).}
+\]
+Before $\tau_{\theta,\gamma}$ the teacher mode is not a separated outlier; afterward its covariance outlier $z_\theta(t)$ satisfies $z_\theta(t)>b_+(t)$ and converges to $\theta$. Its squared eigenvector overlap with the teacher is denoted $\omega_\theta(t)$; it is zero at the separation boundary and tends to one. The exact covariance-to-prediction bridge sends the diagonal covariance outlier to
+\[
+\kappa_\theta(t)=4z_\theta(t)>4b_+(t).
+\]
+The corresponding target coefficient is $\theta\omega_\theta(t)$, not merely a large eigenvalue.
+
+\begin{theorem}[Oracle phase-aware pruning onset in the quadratic model]\label{thm:bbp-onset}
+Consider finitely many distinct positive teacher modes $\theta_1,\ldots,\theta_k$ satisfying the supercritical terminal conditions of the quadratic phase theorem. Define
+\[
+\tau_{\rm sep}=\max_{1\le q\le k}\tau_{\theta_q,\gamma}.
+\]
+Then:
+\begin{enumerate}[label=(\roman*)]
+\item No rule that identifies all teacher modes solely as detached covariance/prediction outliers can be correct for every $t<\tau_{\rm sep}$.
+\item For every $\varepsilon>0$, there exists $T_\varepsilon>\tau_{\rm sep}$ such that for all $t\ge T_\varepsilon$,
+\[
+b_+(t)\le\varepsilon,
+\qquad
+1-\omega_q(t)\le\varepsilon\quad\forall q.
+\]
+\item Consequently, for sufficiently large $t$ there exists a deterministic threshold $c_t$ that separates all teacher-associated prediction spikes from the random bulk:
+\[
+4b_+(t)<c_t<\min_q4z_q(t).
+\]
+\end{enumerate}
+Thus the solvable model has an endogenous discovery phase followed by an asymptotically identifiable compression phase.
+\end{theorem}
+
+\begin{proof}
+Part (i) follows because at least one teacher mode is, by definition of $\tau_{\rm sep}$, still absorbed in the bulk before the last crossing. For (ii), the phase theorem gives $b_+(t)\to0$ and $\omega_q(t)\to1$ for each fixed $q$; finiteness of $k$ lets one choose a common $T_\varepsilon$. It also gives $z_q(t)\to\theta_q>0$. Hence for sufficiently large $t$, $4b_+(t)<2\min_q\theta_q$ while $4z_q(t)>2\min_q\theta_q$ after increasing $T_\varepsilon$ if needed, so a separating threshold exists, proving (iii).
+\end{proof}
+
+The bulk part of the onset has an explicit time. If $\theta_{\min}=\min_q\theta_q$ and one wants
+$b_+(t)\le\varepsilon\theta_{\min}$, it is enough and necessary that
+\[
+\boxed{
+t\ge
+T_{\rm bulk}(\varepsilon)
+:=
+\left[
+\frac{\lambda_+/(\varepsilon\theta_{\min})-1}{4\lambda_+}
+\right]_+.
+}
+\]
+This alone is not a pruning certificate: target overlap must also have emerged.
+
+\subsection{Representation-induced compressibility after separation}
+The exact phase theorem gives more than an outlier diagnostic. It implies that the target itself becomes asymptotically supported on a fixed-dimensional resolved prediction subspace.
+
+Let $P_{\rm sp}(t)$ be the population projector onto the $k$ resolved diagonal tangent spike features after all teacher modes have crossed. Define
+\[
+G_{\rm sp}(t)
+:=
+\sum_{q=1}^k \theta_q^2\,[1-\omega_q(t)^2].
+\]
+
+\begin{theorem}[Dynamic target compressibility]\label{thm:dynamic-compressibility}
+Fix $t>\tau_{\rm sep}$ away from all transition times. In the iterated high-dimensional limit of the quadratic phase theorem,
+\[
+\boxed{
+\norm{(I-P_{\rm sp}(t))f^\star}^2
+=
+G_{\rm sp}(t).
+}
+\]
+Moreover,
+\[
+G_{\rm sp}(t)\longrightarrow0
+\qquad (t\to\infty).
+\]
+Consequently, for every $\varepsilon>0$ there exists a finite $T_\varepsilon>\tau_{\rm sep}$ such that for $t\ge T_\varepsilon$ the $k$-dimensional resolved spike subspace approximates the full teacher with squared population error at most $\varepsilon$.
+
+If the $k$ spike coefficients are estimated on an independent sample of size $n$, the same model has the fixed-dimensional endpoint
+\[
+R_{\rm spike}(t,n)
+=
+G_{\rm sp}(t)
++\frac1n\Tr(G_t^{-1}\Omega_t)
++o_d(1)+o_n(n^{-1}),
+\]
+and under the long-time homoscedastic limit this becomes
+\[
+R_{\rm spike}(t,n)
+=
+G_{\rm sp}(t)+\frac{\sigma_\varepsilon^2k}{n}+o(n^{-1}).
+\]
+\end{theorem}
+
+\begin{proof}
+The exact covariance-to-prediction bridge gives a resolved prediction spike $4z_q(t)$ with target coefficient $\theta_q\omega_q(t)$. Orthogonality of distinct fixed teacher directions makes the resolved target energy add, so projection onto all $k$ spike features captures $\sum_q\theta_q^2\omega_q(t)^2$. The teacher energy is $\sum_q\theta_q^2$, yielding the displayed geometry error. The dynamic overlap theorem gives $\omega_q(t)\to1$, hence $G_{\rm sp}(t)\to0$. The fixed-dimensional regression statement is the spike-restricted least-squares endpoint with its sandwich variance; the homoscedastic long-time specialization follows when the spike features become orthonormal and the misspecification residual vanishes.
+\end{proof}
+
+The theorem is the precise sense in which the network becomes ready to be smaller. The dense random representation is useful during discovery, but after dynamic separation the target can be represented, up to an arbitrarily small geometry error, by only $k$ resolved directions. It does \emph{not} yet say that those directions equal $k$ literal neurons or channels. The structural-transfer theorem is what converts this oracle spectral statement into a hardware-realizable contraction with an explicit additional error term.
+
+\subsection{Why premature rank-one contraction creates a discovery delay}
+The preceding onset theorem concerns observability. In the rank-one teacher model one can go further and quantify the optimization price of contracting before a target direction has macroscopic overlap.
+
+\begin{proposition}[Exact target-angle dynamics after rank-one contraction]\label{prop:rankone-angle}
+Let the teacher be $A^\star=\theta uu^\top$ with $\theta>0$, and after a contraction let the student have one active column $w_s$, so $A_s=w_sw_s^\top$. Define
+\[
+\omega_s=\frac{(u^\top w_s)^2}{\norm{w_s}^2}\in[0,1].
+\]
+Under the exact population gradient flow
+\[
+\dot w_s=-2(w_sw_s^\top-A^\star)w_s,
+\]
+for every interval on which $0<\omega_s<1$,
+\[
+\boxed{
+\frac{1-\omega_{t+h}}{\omega_{t+h}}
+=
+\frac{1-\omega_t}{\omega_t}e^{-4\theta h}.}
+\]
+Therefore the additional time required to reach squared teacher overlap at least $1-\varepsilon$ is
+\[
+\boxed{
+T_\varepsilon(\omega_t)
+=
+\frac{1}{4\theta}
+\left[
+\log\frac{(1-\omega_t)(1-\varepsilon)}{\omega_t\varepsilon}
+\right]_+.}
+\]
+\end{proposition}
+
+\begin{proof}
+Decompose $w=cu+z$ with $z\perp u$ and write $q=\norm w^2$. The gradient flow gives
+\[
+\dot c=-2(q-\theta)c,
+\qquad
+\dot z=-2qz.
+\]
+Hence
+\[
+\frac{d}{ds}\log\frac{\norm z^2}{c^2}=-4\theta.
+\]
+Since $(1-\omega)/\omega=\norm z^2/c^2$, integration yields the odds identity. Solving the inequality $\omega_{t+h}\ge1-\varepsilon$ gives the hitting time.
+\end{proof}
+
+\begin{corollary}[Discovery-delay separation before and after spectral resolution]\label{cor:discovery-delay}
+At isotropic initialization, any fixed sample covariance eigenvector is Haar relative to an independent deterministic teacher direction. Its squared overlap satisfies $\omega_0=O_P(d^{-1})$. Consequently a blind rank-one contraction at initialization requires
+\[
+T_\varepsilon(\omega_0)
+=
+\frac{\log d}{4\theta}+O_P(1)
+\]
+additional population time to obtain constant teacher overlap. By contrast, if contraction is performed at a fixed supercritical checkpoint $t>\tau_{\theta,\gamma}$ and retains the teacher-associated outlier, the dynamic overlap theorem gives $\omega_t\to\omega(t)>0$, so $T_\varepsilon(\omega_t)=O(1)$. As $t\to\infty$, $\omega(t)\to1$ and the additional alignment delay vanishes.
+\end{corollary}
+
+\begin{proof}
+For a Haar unit vector $v$ independent of $u$, $d|u^\top v|^2$ is tight, so $\log(1/\omega_0)=\log d+O_P(1)$. Apply Proposition~\ref{prop:rankone-angle}. In the supercritical regime the outlier-overlap theorem supplies a nonzero deterministic limit, and its long-time limit is one.
+\end{proof}
+
+This result sharpens the meaning of ``do not prune too early.'' Premature contraction need not destroy the teacher forever: infinitesimal overlap can eventually be amplified. What it does is convert an order-one resolved feature into a dimension-dependent discovery delay. The BBP crossing is therefore a natural observability boundary for avoiding that delay, not a mystical universal threshold.
+
+The theorem does \emph{not} claim that a BBP threshold is a universal pruning rule for arbitrary networks. It establishes the exact mechanism in one nonlinear model and provides the theory-derived reason for a warm-up/separation phase.

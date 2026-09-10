@@ -1,0 +1,116 @@
+\section{Exact finite-budget equal-compute contraction in fixed geometry}
+The infinitesimal compute threshold has an exact finite-budget analogue whenever the prediction geometry is frozen. This gives the cleanest possible prospective decision rule: compare the learning progress forfeited in deleted modes with the additional progress purchased in retained modes by making each update cheaper.
+
+Fix a constant prediction operator
+\[
+L=\sum_j\mu_j u_ju_j^\ast,
+\qquad
+ e_0=\sum_j a_ju_j+e^\perp,
+\]
+and a retained index set $S$ with deleted complement $D$. Let one unit of full gradient-flow time cost $C_W>0$ and one unit of reduced flow time cost $C_S\in(0,C_W]$. For an equal cumulative compute budget $B\ge0$, the full path receives flow time
+\[
+h_W=\frac{B}{C_W},
+\]
+whereas the reduced path receives
+\[
+h_S=\frac{B}{C_S}\ge h_W.
+\]
+The reduced path evolves the modes in $S$ and freezes the modes in $D$.
+
+\begin{theorem}[Exact finite-budget compute decomposition]\label{thm:fixed-equal-compute}
+At equal compute $B$,
+\[
+\R_W(B)
+=
+\frac12\sum_j a_j^2e^{-2\mu_jh_W}
++\frac12\norm{e^\perp}^2,
+\]
+while
+\[
+\R_S(B)
+=
+\frac12\sum_{j\in S}a_j^2e^{-2\mu_jh_S}
++\frac12\sum_{j\in D}a_j^2
++\frac12\norm{e^\perp}^2.
+\]
+Define the deleted-mode opportunity loss
+\[
+L_D(B)
+:=
+\frac12\sum_{j\in D}a_j^2
+\left(1-e^{-2\mu_jB/C_W}\right)
+\]
+and the retained-mode acceleration gain
+\[
+G_S(B)
+:=
+\frac12\sum_{j\in S}a_j^2
+\left(
+ e^{-2\mu_jB/C_W}
+-e^{-2\mu_jB/C_S}
+\right).
+\]
+Then
+\[
+\boxed{
+\R_S(B)-\R_W(B)=L_D(B)-G_S(B).}
+\]
+Consequently the contraction strictly improves risk at the same compute budget if and only if
+\[
+\boxed{G_S(B)>L_D(B).}
+\]
+Both terms are nonnegative. The left side is exactly the extra progress on retained modes bought by the cheaper reduced dynamics; the right side is exactly the progress the full model would have made on the modes that were deleted.
+\end{theorem}
+
+\begin{proof}
+Because $L$ is fixed, every full-flow modal coefficient evolves as
+$a_j(s)=a_je^{-\mu_js}$. Evaluating at $s=h_W$ gives the first risk expression. Under the reduced dynamics, retained coefficients evolve for the longer equal-compute time $h_S$, while deleted coefficients remain equal to their initial values. This gives the second expression. Subtracting the two risks and separating $S$ from $D$ yields
+\begin{align*}
+\R_S(B)-\R_W(B)
+&=
+\frac12\sum_{j\in S}a_j^2
+\left(e^{-2\mu_jh_S}-e^{-2\mu_jh_W}\right)\\
+&\quad+
+\frac12\sum_{j\in D}a_j^2
+\left(1-e^{-2\mu_jh_W}\right)\\
+&=-G_S(B)+L_D(B).
+\end{align*}
+Since $h_S\ge h_W$ and $\mu_j\ge0$, both definitions are nonnegative. The final equivalence is immediate.
+\end{proof}
+
+\begin{corollary}[The local compute threshold is the small-budget limit]\label{cor:fixed-to-local}
+As $B\downarrow0$,
+\[
+L_D(B)
+=
+\frac{B}{C_W}\sum_{j\in D}\mu_ja_j^2+O(B^2),
+\]
+and
+\[
+G_S(B)
+=
+B\left(\frac1{C_S}-\frac1{C_W}\right)
+\sum_{j\in S}\mu_ja_j^2+O(B^2).
+\]
+Therefore $G_S(B)>L_D(B)$ for all sufficiently small positive $B$ exactly when
+\[
+\sum_{j\in D}\mu_ja_j^2
+<
+\left(\frac{C_W}{C_S}-1\right)
+\sum_{j\in S}\mu_ja_j^2,
+\]
+which is Corollary~\ref{cor:local-compute-spectral}.
+\end{corollary}
+
+\begin{proof}
+Use $1-e^{-x}=x+O(x^2)$ and
+$e^{-x}-e^{-y}=(y-x)+O(x^2+y^2)$ for $x,y\to0$, then simplify.
+\end{proof}
+
+\begin{remark}[Why eigenvalue thresholding is insufficient even with a compute budget]
+The decision depends on $a_j^2$ and on the time horizon $B$, not on $\mu_j$ alone. A small-$\mu_j$ direction with large target mass can have substantial finite-budget opportunity loss, while a larger eigenvalue carrying essentially no residual target mass can be cheap to delete. The compute ratio also matters: an aggressive structural contraction can justify a larger deleted-mode loss because it buys more evolution time for every retained mode.
+\end{remark}
+
+\begin{remark}[The role of moving geometry]
+The theorem is exact but deliberately frozen-geometry. In a nonlinear network, a deleted sector can acquire future target value because $J_t$ and its eigenspaces move. The dynamic safety results therefore add an explicit geometry-motion allowance to $L_D(B)$ before using this comparison as a contraction certificate. Conceptually the nonlinear controller should preserve the same accounting identity: \emph{future value forgone by deletion} versus \emph{future progress and compute saved by contraction}.
+\end{remark}

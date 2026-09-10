@@ -1,0 +1,74 @@
+\section{Compute-to-accuracy after spectral contraction}
+The conditioning proposition can be sharpened into a direct compute statement. The important qualification is that deleting modes creates an approximation floor. Acceleration is meaningful only for a target accuracy that remains above that floor.
+
+Keep a fixed set $S$ and drop $D=S^c$. Write
+\[
+F_\perp:=\frac12\norm{e^\perp}^2,
+\qquad
+F_D:=\frac12\sum_{j\in D}a_j^2,
+\qquad
+E_S(0):=\frac12\sum_{j\in S}a_j^2.
+\]
+For scalar-step gradient descent on the retained fixed quadratic problem, use the optimal step
+\[
+\eta_S^\star=\frac{2}{\mu_{\max,S}+\mu_{\min,S}},
+\qquad
+\rho_S=\frac{\kappa_S-1}{\kappa_S+1}.
+\]
+
+\begin{theorem}[Iteration complexity above the deletion floor]\label{thm:compute-accuracy}
+For every integer $k\ge0$,
+\[
+\boxed{
+\R_S(k)-F_\perp-F_D
+\le
+\rho_S^{2k}E_S(0).}
+\]
+Hence for any absolute target risk $R_{\rm tar}>F_\perp+F_D$, it is sufficient that
+\[
+\boxed{
+k\ge
+K_S(R_{\rm tar})
+:=
+\left\lceil
+\frac{\log\!\left(E_S(0)/(R_{\rm tar}-F_\perp-F_D)\right)_+}
+{-2\log\rho_S}
+\right\rceil,}
+\]
+with the convention $K_S=0$ when the numerator is nonpositive. If one retained iteration costs $C_S$, the corresponding compute bound is
+\[
+\boxed{\mathcal C_S(R_{\rm tar})\le C_SK_S(R_{\rm tar}).}
+\]
+For the dense active set replace $S$ by all positive modes and set $F_D=0$.
+\end{theorem}
+
+\begin{proof}
+Every retained modal coefficient is multiplied by $1-\eta_S^\star\mu_j$, whose absolute value is at most $\rho_S$. Squaring and summing the orthogonal modal risk contributions gives the first inequality. Solving
+$\rho_S^{2k}E_S(0)\le R_{\rm tar}-F_\perp-F_D$
+for $k$ gives the second statement. Multiplication by the per-iteration cost gives the compute bound.
+\end{proof}
+
+\begin{corollary}[When spectral contraction improves the theoretical compute bound]\label{cor:compute-improve}
+Let $K_{\rm full}(R_{\rm tar})$ and $C_{\rm full}$ denote the corresponding dense quantities. Whenever
+\[
+F_D<R_{\rm tar}-F_\perp
+\]
+and
+\[
+\boxed{C_SK_S(R_{\rm tar})<C_{\rm full}K_{\rm full}(R_{\rm tar}),}
+\]
+the reduced problem has a strictly smaller certified compute-to-target bound. This improvement can arise from either or both of
+\[
+C_S<C_{\rm full}
+\qquad\text{and}\qquad
+\kappa_S<\kappa_{\rm full}.
+\]
+\end{corollary}
+
+\begin{proof}
+The floor condition makes the target attainable by the reduced model. The second inequality directly compares the sufficient compute bounds from Theorem~\ref{thm:compute-accuracy}.
+\end{proof}
+
+\begin{remark}[The precise version of ``small eigenvalues slow training'']
+In continuous-time gradient flow a weak mode does not slow an unrelated strong mode. In scalar-step discrete gradient descent, however, a very small retained eigenvalue can worsen the global condition number and therefore the worst-case iteration bound. If that mode also has negligible finite-horizon target value, deleting it can improve the condition number without materially changing the attainable risk. Structural deletion can then add a second gain by lowering $C_S$. The theorem makes both effects explicit and keeps the approximation floor visible.
+\end{remark}

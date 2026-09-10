@@ -1,0 +1,90 @@
+name: Package full paper delivery
+
+on:
+  push:
+    branches: [research/safe-spectral-reduction]
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  package:
+    if: contains(github.event.head_commit.message, '[package-paper]')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout frozen paper snapshot
+        uses: actions/checkout@v4
+        with:
+          ref: 7fe987cc9e57014fb23ed138ace7c22de55b5a7c
+          fetch-depth: 1
+
+      - name: Assemble full paper bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          BUNDLE="$RUNNER_TEMP/Neural-NET-full-paper"
+          mkdir -p "$BUNDLE/source"
+          rsync -a --exclude='.git/' --exclude='tmp/' "$GITHUB_WORKSPACE/" "$BUNDLE/source/"
+          cat > "$BUNDLE/DELIVERY_MANIFEST.md" <<'EOF'
+          # Neural-NET full paper delivery
+
+          Frozen paper source SHA: `7fe987cc9e57014fb23ed138ace7c22de55b5a7c`
+
+          Branch: `research/safe-spectral-reduction`
+          PR: `#1`
+
+          Contents:
+          - `source/`: complete frozen paper/research snapshot, excluding transient `tmp/` housekeeping files;
+          - `paper_pdf/`: compiled theory paper from the successful Theory compile workflow on the same source SHA;
+          - `confirmatory/nonoracle_controller/`: official frozen non-oracle controller confirmation artifacts from run `34490992335`;
+          - `confirmatory/physical_architecture/`: physical-architecture frontier evidence from run `34478498402` when available.
+
+          The packaging workflow itself is intentionally not part of the source snapshot. Scientific protocols, seeds, thresholds, theory, code, tests, docs and workflows are those committed in the frozen source SHA.
+          EOF
+
+      - name: Download compiled theory PDF
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/Neural-NET-full-paper/paper_pdf"
+          gh run download 34490996881 \
+            --repo ENRICOBIGNOZZI/Neural-NET \
+            --name theory-pdf \
+            --dir "$RUNNER_TEMP/Neural-NET-full-paper/paper_pdf"
+
+      - name: Download official non-oracle confirmation evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/Neural-NET-full-paper/confirmatory/nonoracle_controller"
+          gh run download 34490992335 \
+            --repo ENRICOBIGNOZZI/Neural-NET \
+            --dir "$RUNNER_TEMP/Neural-NET-full-paper/confirmatory/nonoracle_controller"
+
+      - name: Download physical-architecture evidence
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/Neural-NET-full-paper/confirmatory/physical_architecture"
+          gh run download 34478498402 \
+            --repo ENRICOBIGNOZZI/Neural-NET \
+            --dir "$RUNNER_TEMP/Neural-NET-full-paper/confirmatory/physical_architecture"
+
+      - name: Inventory bundle
+        run: |
+          set -euo pipefail
+          find "$RUNNER_TEMP/Neural-NET-full-paper" -type f -print | sort > "$RUNNER_TEMP/Neural-NET-full-paper/FILE_INVENTORY.txt"
+          echo "Files: $(wc -l < "$RUNNER_TEMP/Neural-NET-full-paper/FILE_INVENTORY.txt")"
+          du -sh "$RUNNER_TEMP/Neural-NET-full-paper"
+
+      - name: Upload full paper delivery
+        uses: actions/upload-artifact@v4
+        with:
+          name: Neural-NET-full-paper-7fe987cc
+          path: ${{ runner.temp }}/Neural-NET-full-paper
+          if-no-files-found: error
+          compression-level: 6

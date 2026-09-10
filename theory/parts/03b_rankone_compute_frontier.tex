@@ -1,0 +1,123 @@
+\section{Exact rank-one risk dynamics and the price of discovery}
+The rank-one angle law identifies a dimension-dependent discovery delay, but by itself it does not say whether avoiding that delay is worth the compute of a wide exploratory phase. In the rank-one quadratic model the radial dynamics are also exactly solvable, so the discovery benefit can be converted into a critical wide-to-compact compute ratio without approximation.
+
+Let $A^\star=\theta uu^\top$ with $\theta>0$, $\norm u=1$, and let the rank-one student be $A_s=w_sw_s^\top$. Define
+\[
+q_s:=\norm{w_s}^2,
+\qquad
+\omega_s:=\frac{(u^\top w_s)^2}{q_s},
+\]
+for $q_s>0$. The population risk is
+\[
+\R_1(q,\omega)
+:=\frac12\norm{ww^\top-\theta uu^\top}_F^2
+=\frac12\left(q^2+\theta^2-2\theta q\omega\right).
+\]
+
+\begin{proposition}[Closed-form rank-one state and risk]\label{prop:rankone-closed-form}
+Under
+\[
+\dot w_s=-2(w_sw_s^\top-A^\star)w_s,
+\]
+with $q_0>0$ and $0<\omega_0<1$,
+\[
+\boxed{
+\omega_s
+=\frac{\omega_0e^{4\theta s}}
+{1-\omega_0+\omega_0e^{4\theta s}},}
+\]
+and
+\[
+\boxed{
+q_s
+=
+\frac{1-\omega_0+\omega_0e^{4\theta s}}
+{q_0^{-1}+4(1-\omega_0)s+(\omega_0/\theta)(e^{4\theta s}-1)}.}
+\]
+Consequently the full rank-one risk path is explicit:
+\[
+\boxed{
+\R_1(s;q_0,\omega_0)
+=\frac12\left(q_s^2+\theta^2-2\theta q_s\omega_s\right).}
+\]
+Moreover $s\mapsto\R_1(s;q_0,\omega_0)$ is nonincreasing.
+\end{proposition}
+
+\begin{proof}
+The odds identity in Proposition~\ref{prop:rankone-angle} gives the displayed logistic form for $\omega_s$. For the radial coordinate,
+\[
+\dot q_s
+=2w_s^\top\dot w_s
+=-4q_s(q_s-\theta\omega_s).
+\]
+Set $r_s=q_s^{-1}$. Then
+\[
+\dot r_s+4\theta\omega_s r_s=4.
+\]
+The logistic formula implies
+\[
+\exp\left(\int_0^s4\theta\omega_a\,da\right)
+=1-\omega_0+\omega_0e^{4\theta s}.
+\]
+Multiplying the linear ODE for $r_s$ by this integrating factor and integrating gives
+\[
+r_s\bigl(1-\omega_0+\omega_0e^{4\theta s}\bigr)
+=q_0^{-1}+4(1-\omega_0)s
++\frac{\omega_0}{\theta}(e^{4\theta s}-1),
+\]
+which yields the formula for $q_s$. The risk identity follows from
+$\Tr((ww^\top)^2)=q^2$ and
+$\Tr(ww^\top uu^\top)=q\omega$.
+Finally the trajectory is gradient flow, hence
+$\dot\R_1=-\norm{\nabla_w\R_1}^2\le0$.
+\end{proof}
+
+Now compare a wide discovery phase with a compact-from-start rank-one control. At wide time $t>0$, let a target-free structural rule contract the wide state to a rank-one state $(q_t^W,\omega_t^W)$. After an additional compact horizon $H\ge0$, define
+\[
+\bar R(t,H)
+:=\R_1(H;q_t^W,\omega_t^W).
+\]
+Let the matched rank-one control start from $(q_0^C,\omega_0^C)$ and define its hitting time
+\[
+T_C(r)
+:=\inf\{s\ge0:\R_1(s;q_0^C,\omega_0^C)\le r\}.
+\]
+
+\begin{theorem}[Critical compute ratio for temporary wide discovery]\label{thm:rankone-critical-compute}
+Let one unit of wide training time cost $C_W$ and one unit of rank-one training time cost $C_1$, and write
+\[
+\rho:=\frac{C_W}{C_1}\ge1.
+\]
+The wide-then-rank-one path spends compute $C_Wt+C_1H$. At the same compute, the compact-from-start rank-one control can train for time
+\[
+H+\rho t.
+\]
+Therefore temporary wide discovery wins the equal-compute comparison exactly when
+\[
+\boxed{
+\bar R(t,H)
+<
+\R_1(H+\rho t;q_0^C,\omega_0^C).}
+\]
+If the compact risk path is strictly decreasing until it first reaches $\bar R(t,H)$, this is equivalent to
+\[
+\boxed{
+\rho<\rho_\star(t,H)
+:=\frac{T_C(\bar R(t,H))-H}{t}.}
+\]
+Thus $\rho_\star$ is the maximum wide-to-compact cost ratio that the observed discovery advantage can repay. If $\rho_\star\le1$, temporary width cannot win even when a wide step costs no more than a compact step. If $\rho_\star>1$, the discovery mechanism has a nontrivial compute budget: it is beneficial on hardware/architectures whose realized cost ratio lies below $\rho_\star$ and not beneficial above it.
+\end{theorem}
+
+\begin{proof}
+The compute equality
+$C_Wt+C_1H=C_1(H+\rho t)$
+is immediate from the definition of $\rho$. Hence the first boxed inequality is exactly the equal-compute risk comparison. Under strict monotonicity, the compact path has risk larger than $\bar R(t,H)$ precisely before time $T_C(\bar R(t,H))$. Therefore
+\[
+H+\rho t<T_C(\bar R(t,H))
+\]
+is necessary and sufficient for a strict wide-path win. Solving for $\rho$ yields the threshold.
+\end{proof}
+
+\begin{remark}[Why the critical ratio is the right controlled diagnostic]
+A quadratic phase model may require many exploratory columns to produce a clean random-matrix bulk, while a real structured neural contraction may save a much smaller factor of compute. Hard-coding the number of exploratory columns as the compute ratio would conflate the statistical model used to generate spectral separation with a hardware cost model. The quantity $\rho_\star$ avoids that mistake. The experiment should report the discovery advantage and the entire critical-cost frontier first; only afterward should a measured architecture-specific $C_W/C_1$ be placed on that frontier.
+\end{remark}

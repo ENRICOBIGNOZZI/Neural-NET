@@ -1,0 +1,218 @@
+\section{A checkpoint-computable prediction-gap certificate}
+The master theorem is still partly oracle because it is written with the unknown future loss drop $\Delta\R_{t,H}$ and assumes that the relevant spectral gaps remain open over the horizon. Both quantities can be removed from the decision rule. The key observation is that square-loss dissipation already controls how far the dense parameter trajectory can travel after the checkpoint.
+
+For the dense flow put
+\[
+g_s=J_s^\ast e_s,
+\qquad
+A_t(h):=\int_t^{t+h}\norm{g_s}\,ds.
+\]
+Let $L_g$ be a valid Lipschitz constant of the gradient vector field on the declared local tube. Then two current-state bounds are available:
+\[
+A_t(H)
+\le \sqrt{H\R(\theta_t)},
+\]
+by Cauchy--Schwarz and exact loss dissipation, and
+\[
+A_t(H)
+\le \norm{g_t}\,\phi(L_g,H),
+\qquad
+\phi(L,H):=
+\begin{cases}
+(e^{LH}-1)/L,&L>0,\\
+H,&L=0,
+\end{cases}
+\]
+because $\norm{g_{t+h}}\le e^{L_gh}\norm{g_t}$. Define the checkpoint path budget
+\[
+\boxed{
+\overline A_t(H)
+:=
+\min\left\{
+\sqrt{H\R(\theta_t)},
+\norm{g_t}\phi(L_g,H)
+\right\}.}
+\]
+Thus late in training the current gradient norm can make the horizon budget much smaller than the crude loss-only envelope.
+
+\begin{theorem}[Checkpoint-computable horizon certificate]\label{thm:checkpoint-certificate}
+Fix a checkpoint $t$, horizon $H>0$, a prediction-space cluster $P_D(t)$ proposed for deletion, its paired kept parameter cluster $Q_K(t)$, and a fixed structural projector $S$. Let
+\[
+E_D(t)=\norm{Q_D(t)g_t}^2,
+\qquad
+\delta_0=\norm{(I-S)Q_K(t)}_{\op},
+\qquad
+ d_0=\norm{\theta_t-\widetilde\theta_t}.
+\]
+Assume:
+\begin{enumerate}[label=(\roman*)]
+\item on the dense horizon, $\norm{D^2F}\le B_H$;
+\item on a common tube containing the dense and structurally reduced continuations, $g$ is $L_g$-Lipschitz and $F$ is $B_{J,\mathrm{tube}}$-Lipschitz;
+\item at the checkpoint the discarded prediction cluster and paired kept parameter cluster have gaps $\Delta_{L,0}>0$ and $\Delta_{G,0}>0$.
+\end{enumerate}
+Let
+\[
+A:=\overline A_t(H),
+\qquad
+\overline B_J:=\norm{J_t}_{\op}+B_HA,
+\qquad
+V:=2B_H\overline B_JA.
+\]
+Define the a priori gap floors
+\[
+\underline\Delta_L:=\Delta_{L,0}-2V,
+\qquad
+\underline\Delta_G:=\Delta_{G,0}-2V.
+\]
+If
+\[
+\boxed{
+\underline\Delta_L>0,
+\qquad
+\underline\Delta_G>0,}
+\]
+then both clusters remain isolated throughout $[t,t+H]$. Moreover, with
+\[
+B_e:=\sqrt{2\R(\theta_t)},
+\qquad
+\overline B_L:=\overline B_J^2,
+\]
+set
+\[
+\overline E_D
+:=E_D(t)
++B_e^2
+\left(1+\frac{2\overline B_L}{\underline\Delta_L}\right)V.
+\]
+The dense omitted-gradient path of the structural action satisfies
+\[
+\boxed{
+\int_t^{t+H}\norm{(I-S)g_s}\,ds
+\le
+H\sqrt{\overline E_D}
++\delta_0A
++\frac{2B_H\overline B_J}{\underline\Delta_G}A^2.}
+\]
+Consequently the terminal prediction discrepancy obeys the fully checkpoint-computable bound
+\[
+\boxed{
+\begin{aligned}
+\norm{F(\theta_{t+H})-F(\widetilde\theta_{t+H})}
+\le
+\mathfrak D^{\rm chk}_{t,H}(S)
+:=B_{J,\mathrm{tube}}e^{L_gH}
+\Bigg[
+&d_0+H\sqrt{\overline E_D}
++\delta_0A\\
+&+\frac{2B_H\overline B_J}{\underline\Delta_G}A^2
+\Bigg].
+\end{aligned}}
+\]
+Every quantity on the right is fixed or measured at the checkpoint, apart from the declared deterministic tube/curvature bounds.
+\end{theorem}
+
+\begin{proof}
+Exact dissipation gives
+\[
+\int_t^{t+H}\norm{g_s}^2ds
+=\R(\theta_t)-\R(\theta_{t+H})
+\le\R(\theta_t),
+\]
+so Cauchy--Schwarz yields the first path bound. Since $g$ is $L_g$-Lipschitz along its own flow,
+\[
+\frac{d}{dh}\norm{g_{t+h}}
+\le L_g\norm{g_{t+h}}
+\]
+almost everywhere, which gives the exponential current-gradient bound and therefore $A_t(H)\le A$.
+
+Along the dense path,
+\[
+\norm{J_s-J_t}_{\op}
+\le
+B_H\int_t^s\norm{g_r}\,dr
+\le B_HA,
+\]
+so $\norm{J_s}_{\op}\le\overline B_J$. Therefore both
+$L_s=J_sJ_s^\ast$ and $G_s=J_s^\ast J_s$ satisfy
+\[
+\int_t^{t+H}\norm{\dot L_s}_{\op}ds
+\le V,
+\qquad
+\int_t^{t+H}\norm{\dot G_s}_{\op}ds
+\le V.
+\]
+Weyl's perturbation inequality moves each side of an inter-cluster gap by at most the operator perturbation, so each gap can shrink by at most $2V$. Positivity of the displayed gap floors therefore certifies persistence rather than assuming it.
+
+Because the dense residual norm is nonincreasing, $\norm{e_s}\le B_e$, while
+$\norm{L_s}_{\op}\le\overline B_J^2=\overline B_L$. The discarded-energy persistence theorem with the certified gap floor then gives
+\[
+E_D(s)\le\overline E_D.
+\]
+For the parameter projector, let
+\[
+A(s):=\int_t^s\norm{g_r}\,dr.
+\]
+The Riesz-projector bound and the same curvature calculation imply
+\[
+\norm{Q_K(s)-Q_K(t)}_{\op}
+\le
+\frac{4B_H\overline B_J}{\underline\Delta_G}A(s).
+\]
+Structural transfer therefore yields
+\[
+\norm{(I-S)g_s}
+\le
+\sqrt{\overline E_D}
++\left[
+\delta_0+
+\frac{4B_H\overline B_J}{\underline\Delta_G}A(s)
+\right]\norm{g_s}.
+\]
+Integrating and using $A'(s)=\norm{g_s}$ almost everywhere gives
+\[
+\int_t^{t+H}\norm{(I-S)g_s}ds
+\le
+H\sqrt{\overline E_D}
++\delta_0A
++\frac{4B_H\overline B_J}{\underline\Delta_G}
+\int_t^{t+H}A(s)A'(s)ds,
+\]
+which is exactly the omitted-gradient bound because
+$\int A A'=A(H)^2/2\le A^2/2$.
+Finally apply Theorem~\ref{thm:gronwall} and upper-bound its exponential kernel by $e^{L_gH}$. The common-tube predictor Lipschitz constant gives the terminal prediction bound.
+\end{proof}
+
+\begin{remark}[What is new relative to the master theorem]
+The master theorem is structurally correct but asks for two future facts: $\Delta\R_{t,H}$ and persistence of the spectral gaps. Theorem~\ref{thm:checkpoint-certificate} replaces both by a current-state path budget. The practical gate is now explicit:
+\[
+\boxed{
+2V<\min\{\Delta_{L,0},\Delta_{G,0}\}
+}
+\]
+before any projector-based deletion argument is allowed to proceed.
+\end{remark}
+
+\begin{remark}[Why the target-weighted term remains indispensable]
+Even after the gap is certified, the leading contribution is $H\sqrt{\overline E_D}$. Hence a spectrally stable low-eigenvalue sector is not enough: the sector must also carry little target-weighted gradient energy. Conversely, if $E_D(t)$ is small but the curvature path budget is large, $\overline E_D$ warns that future feature motion can still make the sector valuable.
+\end{remark}
+
+\begin{corollary}[Checkpoint-to-observability bridge]\label{cor:checkpoint-observability}
+For clipped squared loss $\ell_B$, let
+\[
+M_{2}^{\rm chk}(S)
+:=
+\min\left\{
+B^2,
+4B\left[\mathfrak D^{\rm chk}_{t,H}(S)\right]^2
+\right\}.
+\]
+Then $M_2^{\rm chk}(S)$ is a deterministic pre-probe second-moment bound for the paired structural loss difference. It can therefore be inserted directly into Theorem~\ref{thm:localized-damage}. The resulting UCB is a finite-sample certificate driven by the current target-weighted spectrum rather than by the global loss range alone.
+\end{corollary}
+
+\begin{proof}
+Theorem~\ref{thm:checkpoint-certificate} supplies the population $L^2$ prediction-gap bound. Lemma~\ref{lem:loss-gap-moment} converts it into the paired-loss second-moment bound, and Theorem~\ref{thm:localized-damage} applies because the geometric quantity is fixed before observing the independent probe.
+\end{proof}
+
+\begin{remark}[Remaining non-oracle constant]
+The only genuinely architecture-dependent analytic burden left in this certificate is to obtain useful deterministic local bounds on $B_H$, $L_g$, and $B_{J,\mathrm{tube}}$. Estimating them by a point sample is a controller proxy; certifying them requires an architecture-specific norm, interval, PAC-Bayes, Lipschitz, or other valid local bound. This is now a sharply isolated problem rather than an unspecified ``future motion'' term.
+\end{remark}

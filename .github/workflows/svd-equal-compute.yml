@@ -1,0 +1,33 @@
+name: SVD equal-compute sweep
+
+on:
+  push:
+    branches: [research/safe-spectral-reduction]
+
+jobs:
+  sweep:
+    if: contains(github.event.head_commit.message, '[svd-equal-compute]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[dev]'
+      - name: Run SVD equal-compute falsification sweep
+        run: >-
+          python experiments/run_svd_equal_compute_sweep.py
+          --seeds 0 1 2 3 4 5 6 7 8 9
+          --target-ranks 2 3 4
+          --checkpoints 0 20 40 60 80 100 120
+          --horizon 40
+      - name: Upload SVD equal-compute audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: svd-equal-compute-sweep
+          path: results/svd_equal_compute_sweep.json

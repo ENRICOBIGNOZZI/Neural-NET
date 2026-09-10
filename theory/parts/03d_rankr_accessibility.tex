@@ -1,0 +1,141 @@
+\section{Rank-$r$ compact models: exact target-accessibility dynamics}
+The rank-one discovery-delay law extends exactly to every compact factor rank. This exposes a basic tradeoff that a compute-aware paper must keep visible: a smaller compact model starts with less random target accessibility, so temporary width can create more discovery value, but the same smaller rank also makes the wide phase more expensive relative to compact-from-start.
+
+Let the teacher be $A^\star=\theta uu^\top$ with $\theta>0$ and $\norm u=1$. Let $W_s\in\mathbb R^{d\times r}$ have full column rank and evolve under the factor gradient flow
+\[
+\dot W_s=-2(W_sW_s^\top-A^\star)W_s.
+\]
+Write $\mathcal S_s=\Ran(W_s)$, let $P_s$ be the orthogonal projector onto $\mathcal S_s$, and define the target accessibility
+\[
+q_s:=u^\top P_su\in[0,1].
+\]
+
+\begin{theorem}[Exact rank-$r$ target-accessibility law]\label{thm:rankr-accessibility}
+For every interval on which $W_s$ has rank $r$,
+\[
+\boxed{
+\frac{1-q_s}{q_s}
+=
+\frac{1-q_0}{q_0}e^{-4\theta s}}
+\]
+whenever $q_0\in(0,1)$. Equivalently,
+\[
+\boxed{
+q_s
+=
+\frac{q_0e^{4\theta s}}
+{1-q_0+q_0e^{4\theta s}}.}
+\]
+Therefore the time needed for the compact trainable subspace to reach target accessibility at least $1-\varepsilon$ is
+\[
+\boxed{
+T_\varepsilon^{(r)}(q_0)
+=
+\frac1{4\theta}
+\left[
+\log\frac{(1-q_0)(1-\varepsilon)}{q_0\varepsilon}
+\right]_+.}
+\]
+The formula depends on the compact rank only through its initial accessibility $q_0$.
+\end{theorem}
+
+\begin{proof}
+Since $A_s=W_sW_s^\top$,
+\[
+\dot W_s
+=2\theta uu^\top W_s-2W_s(W_s^\top W_s).
+\]
+The second term is a time-dependent right multiplication and therefore changes the basis inside $\Ran(W_s)$ but not the subspace itself. More precisely, if
+\[
+E_s=e^{2\theta s uu^\top},
+\]
+then variation of constants on the right gives an invertible matrix $R_s\in\mathbb R^{r\times r}$ such that
+\[
+W_s=E_sW_0R_s,
+\]
+so
+\[
+\mathcal S_s=E_s\mathcal S_0.
+\]
+Choose an orthonormal basis matrix $Q_0$ for $\mathcal S_0$ and write $a=Q_0^\top u$, so $\norm a^2=q_0$. Put $c=e^{2\theta s}$. Because
+\[
+E_s^2=I+(c^2-1)uu^\top,
+\]
+the projector onto $E_s\mathcal S_0$ is
+\[
+P_s
+=E_sQ_0(Q_0^\top E_s^2Q_0)^{-1}Q_0^\top E_s.
+\]
+Now
+\[
+Q_0^\top E_s^2Q_0=I+(c^2-1)aa^\top,
+\qquad
+u^\top E_sQ_0=ca^\top.
+\]
+Sherman--Morrison therefore gives
+\[
+q_s
+=c^2a^\top[I+(c^2-1)aa^\top]^{-1}a
+=\frac{c^2q_0}{1+(c^2-1)q_0},
+\]
+which is the displayed logistic form because $c^2=e^{4\theta s}$. Solving $q_s\ge1-\varepsilon$ yields the hitting time.
+\end{proof}
+
+\begin{corollary}[Haar compact initialization]\label{cor:haar-rankr}
+If $\mathcal S_0$ is a Haar-distributed $r$-dimensional subspace of $\mathbb R^d$, independent of the deterministic teacher direction $u$, then
+\[
+\boxed{
+q_0\sim\mathrm{Beta}\!\left(\frac r2,\frac{d-r}{2}\right),
+\qquad
+\mathbb E q_0=\frac rd.}
+\]
+If $r/d\to\alpha\in(0,1)$, then $q_0\to\alpha$ in probability and
+\[
+T_\varepsilon^{(r)}(q_0)
+\to
+\frac1{4\theta}
+\left[
+\log\frac{(1-\alpha)(1-\varepsilon)}{\alpha\varepsilon}
+\right]_+.
+\]
+If instead $r=o(d)$ and $r\to\infty$, then $q_0=(r/d)(1+o_P(1))$ and
+\[
+\boxed{
+T_\varepsilon^{(r)}(q_0)
+=
+\frac1{4\theta}\log\frac dr+O_P(1).}
+\]
+For fixed $r$, the same leading $\frac1{4\theta}\log d$ scaling holds up to an $O_P(1)$ random term.
+\end{corollary}
+
+\begin{proof}
+For a Haar $r$-subspace, $q_0$ is the squared length of the projection of a fixed unit vector onto that subspace, giving the beta law. Its mean is $r/d$. Standard beta concentration gives $q_0\to\alpha$ when $r/d\to\alpha$, and $q_0/(r/d)\to1$ in probability when $r\to\infty$ with $r=o(d)$. Substitution into Theorem~\ref{thm:rankr-accessibility} gives the limits. For fixed $r$, $dq_0$ is tight and nondegenerate, hence $\log(1/q_0)=\log d+O_P(1)$.
+\end{proof}
+
+\begin{remark}[The width--discovery tradeoff]
+The corollary makes precise why a compact model can be slower to discover a target direction even when it has enough rank to represent the teacher eventually. When $r\ll d$, its initial target accessibility is of order $r/d$ and it pays an alignment delay of order $\log(d/r)$. Increasing $r$ reduces that delay. Thus ``compact from the beginning'' and ``wide for discovery'' differ even when both hypothesis classes contain the target.
+\end{remark}
+
+\begin{proposition}[Pure-factor compute tension]\label{prop:pure-factor-tension}
+Consider the bilinear quadratic predictor
+\[
+f_W(x,z)=x^\top WW^\top z,
+\]
+implemented by computing $W^\top x$ and $W^\top z$. Up to lower-order scalar operations, a rank-$r$ forward pass costs $2dr$ multiply--accumulates. Hence a wide factor count $m$ and a compact factor count $r$ have structural forward-cost ratio
+\[
+\boxed{\rho_{\rm factor}=\frac mr.}
+\]
+If $d/m\to\gamma\in(0,1)$ and $r=o(d)$, then
+\[
+\rho_{\rm factor}\sim\frac{d}{\gamma r}\to\infty.
+\]
+At the same time the compact initialization delay from Corollary~\ref{cor:haar-rankr} grows only logarithmically, as $\frac1{4\theta}\log(d/r)+O_P(1)$. Therefore the pure factor model contains an intrinsic asymptotic tension: making the compact exploratory subspace very small strengthens the discovery-delay mechanism but makes each unit of wide training polynomially more expensive relative to compact training.
+\end{proposition}
+
+\begin{proof}
+Each of the two matrix--vector products $W^\top x$ and $W^\top z$ costs $dr$ multiply--accumulates, and their final inner product contributes only $O(r)$ additional operations. Taking the ratio of the leading terms gives $m/r$. If $m\sim d/\gamma$ and $r=o(d)$, the ratio diverges as displayed. The delay statement is Corollary~\ref{cor:haar-rankr}.
+\end{proof}
+
+\begin{remark}[Why this limitation is useful]
+This is not a defect to hide. It identifies exactly what the next neural bridge must measure. A successful practical architecture needs either a moderate wide/compact cost ratio, a discovery benefit stronger than the pure subspace-angle mechanism, or substantial compute shared by wide and compact states so that the \emph{total} cost ratio is much smaller than the raw exploratory-factor ratio. The critical frontier $\rho_\star$ tells us which regime is required; it prevents the experiment from confusing statistical overparameterization with free computation.
+\end{remark}

@@ -1,0 +1,54 @@
+\section{A cost-dependent contraction window}
+The critical-ratio theorem implies that ``when should contraction start?'' has no architecture-free answer even in the exact rank-one phase model. The statistical geometry determines when useful target structure becomes observable, while the realized wide-to-compact cost ratio determines whether waiting for that structure is economically worthwhile.
+
+\begin{definition}[Compute-feasible contraction set]\label{def:compute-window}
+Fix a compact continuation horizon $H$ and a realized wide-to-compact cost ratio $\rho=C_W/C_1\ge1$. In the rank-one phase model define
+\[
+\mathcal T_\rho(H)
+:=
+\{t>0:\rho<\rho_\star(t,H)\}.
+\]
+When the set is nonempty, define its earliest and latest feasible times
+\[
+t_{\rm on}(\rho,H):=\inf\mathcal T_\rho(H),
+\qquad
+ t_{\rm off}(\rho,H):=\sup\mathcal T_\rho(H).
+\]
+No connectedness or monotonicity of $\mathcal T_\rho(H)$ is assumed.
+\end{definition}
+
+\begin{corollary}[Exact cost-dependent onset]\label{cor:cost-dependent-onset}
+Under the assumptions of Theorem~\ref{thm:rankone-critical-compute}, a wide-then-rank-one contraction performed at time $t$ beats the matched rank-one-from-start path at equal compute if and only if
+\[
+t\in\mathcal T_\rho(H).
+\]
+If a separate statistical safety condition requires $t\ge\tau_{\rm safe}$, then the earliest oracle contraction time that is both statistically safe and compute-beneficial is
+\[
+\boxed{
+ t_{\rm contract}(\rho,H)
+=
+\inf\bigl(\mathcal T_\rho(H)\cap[\tau_{\rm safe},\infty)\bigr),}
+\]
+with value $+\infty$ if the intersection is empty.
+\end{corollary}
+
+\begin{proof}
+The first statement is the definition of $\mathcal T_\rho(H)$ combined with Theorem~\ref{thm:rankone-critical-compute}. Adding the independent safety requirement restricts the admissible set to the displayed intersection; its infimum is therefore the earliest feasible contraction time.
+\end{proof}
+
+\begin{remark}[There can be a latest useful time]
+Statistical safety generally improves as target overlap increases and the nuisance bulk contracts. Compute value need not improve forever. Once the target-bearing direction is already resolved, additional wide training can add little discovery value while continuing to pay the wide cost. Hence $\rho_\star(t,H)$ may eventually fall, and $\mathcal T_\rho(H)$ may have a finite upper edge $t_{\rm off}$. This possibility is important algorithmically: ``wait longer to be safer'' can become economically wrong after the discovery phase has ended.
+\end{remark}
+
+\begin{remark}[Three distinct clocks]
+The theory therefore contains three clocks that should not be collapsed into one heuristic threshold:
+\[
+\boxed{
+\text{spectral resolution time}
+\quad\neq\quad
+\text{safe contraction time}
+\quad\neq\quad
+\text{compute-optimal contraction time}.}
+\]
+The first concerns identification of target-bearing geometry, the second bounds statistical damage from deletion, and the third compares the discovery value of remaining wide with the compute opportunity cost of doing so. A practical controller must satisfy all three constraints simultaneously.
+\end{remark}

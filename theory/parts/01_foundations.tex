@@ -1,0 +1,232 @@
+\section{Problem and principle}
+A dense model contains many parameter directions that eventually exert almost no useful effect on prediction. The tempting rule
+\[
+\mu_j(t)\approx 0 \quad\Longrightarrow\quad \text{delete mode }j
+\]
+is not safe. A weak mode may carry important unresolved target signal, and in a feature-learning network a direction that is currently buried in a random bulk can later become a target-aligned outlier. Conversely, a large mode can be pure nuisance capacity.
+
+The goal is therefore not generic pruning. It is to answer three separate questions:
+\begin{enumerate}[label=(\roman*)]
+\item \emph{Current value:} how much terminal risk reduction can a mode buy if the geometry is frozen now?
+\item \emph{Future discovery value:} how much could the geometry associated with that mode improve over the next training horizon?
+\item \emph{Structural realizability:} can the low-value spectral sector be removed as actual neurons, channels, heads, blocks, or rank without destroying the kept sector?
+\end{enumerate}
+The working principle is
+\[
+\boxed{\text{overparameterize to discover; contract only after useful geometry has separated.}}
+\]
+
+\section{Prediction-space geometry}
+Let $F:\Th\to\Hh$ be a differentiable predictor into a real Hilbert prediction space. For square loss define
+\[
+e_\theta=f^\star-F(\theta),\qquad \R(\theta)=\frac12\norm{e_\theta}^2.
+\]
+Write $J_\theta=DF(\theta):\Th\to\Hh$. Population gradient flow is
+\[
+\dot\theta_t=J_t^\ast e_t,
+\qquad
+\dot e_t=-L_t e_t,
+\qquad
+L_t=J_tJ_t^\ast.
+\]
+The weight spectrum, the parameter Gram spectrum $J_t^\ast J_t$, and the prediction spectrum $L_t$ are distinct objects. The nonzero spectra of $J_t^\ast J_t$ and $L_t$ coincide, but weight singular values do not in general determine either.
+
+Assume for the moment that $L_t$ has simple positive eigenpairs
+\[
+L_tu_j(t)=\mu_j(t)u_j(t),\qquad \mu_j(t)>0,
+\]
+and let $v_j(t)$ be the corresponding right singular vectors,
+\[
+J_tv_j(t)=\sqrt{\mu_j(t)}u_j(t),
+\qquad
+J_t^\ast u_j(t)=\sqrt{\mu_j(t)}v_j(t).
+\]
+Define residual target coefficients
+\[
+a_j(t)=\ip{e_t}{u_j(t)}.
+\]
+
+\begin{theorem}[Exact modal gradient energy]\label{thm:grad-energy}
+At every checkpoint at which the singular system is defined,
+\[
+J_t^\ast e_t=\sum_j\sqrt{\mu_j(t)}a_j(t)v_j(t),
+\]
+and hence
+\[
+\boxed{
+\norm{\nabla \R(\theta_t)}^2
+=\norm{J_t^\ast e_t}^2
+=\sum_j\mu_j(t)a_j(t)^2.}
+\]
+Moreover,
+\[
+\dot\R(\theta_t)=-\sum_j\mu_j(t)a_j(t)^2.
+\]
+\end{theorem}
+
+\begin{proof}
+Decompose $e_t=\Pi_te_t+(I-\Pi_t)e_t$, where $\Pi_t$ projects onto $\overline{\Ran J_t}$. Since $J_t^\ast(I-\Pi_t)e_t=0$,
+\[
+J_t^\ast e_t=\sum_j a_jJ_t^\ast u_j
+=\sum_j\sqrt{\mu_j}a_jv_j.
+\]
+Orthonormality of the $v_j$ gives the norm identity. Finally,
+\[
+\dot\R=\ip{e_t}{\dot e_t}
+=-\ip{e_t}{L_te_t}
+=-\norm{J_t^\ast e_t}^2.
+\]
+\end{proof}
+
+The product $\mu_j a_j^2$ is therefore not an arbitrary saliency heuristic. It is the exact instantaneous loss-dissipation budget of mode $j$.
+
+\begin{proposition}[No eigenvalue-only safe deletion rule]\label{prop:no-eigen-only}
+Fix any $0<\mu_2<\mu_1$. There exist two square-loss problems with the same prediction spectrum $\{\mu_1,\mu_2\}$ for which deleting the $\mu_2$ mode has, respectively, zero and strictly positive irreducible risk cost. Hence no rule depending only on eigenvalues can be uniformly safe.
+\end{proposition}
+
+\begin{proof}
+Take $\Hh=\mathbb R^2$ and $L=\mathrm{diag}(\mu_1,\mu_2)$. In the first problem choose residual $e=(1,0)$; deleting the second mode changes nothing. In the second choose $e=(0,1)$; deleting the second mode prevents any reduction of the initial risk $1/2$. The spectrum is identical in both problems.
+\end{proof}
+
+\section{Fixed geometry: exact finite-horizon mode value}
+We first solve the reduction problem exactly when $J_t\equiv J$ and $L_t\equiv L$ over a horizon $H$. This is the correct local benchmark for every nonlinear controller.
+
+Let $S$ denote the kept singular modes and $D=S^c$ the dropped modes. Define the parameter projector
+\[
+Q_S=\sum_{j\in S}v_j\otimes v_j.
+\]
+The projected flow is
+\[
+\dot\theta=Q_SJ^\ast e,
+\qquad
+\dot e=-JQ_SJ^\ast e
+=-\sum_{j\in S}\mu_j a_j u_j.
+\]
+
+\begin{theorem}[Exact finite-horizon deletion cost]\label{thm:fixed-value}
+Suppose $L$ is fixed on $[0,H]$ and write
+\[
+e_0=e^\perp+\sum_j a_ju_j.
+\]
+The full and reduced terminal risks are
+\begin{align*}
+\R_{\rm full}(H)
+&=\frac12\norm{e^\perp}^2
++\frac12\sum_j a_j^2e^{-2\mu_jH},\\
+\R_S(H)
+&=\frac12\norm{e^\perp}^2
++\frac12\sum_{j\in S}a_j^2e^{-2\mu_jH}
++\frac12\sum_{j\in D}a_j^2.
+\end{align*}
+Therefore the exact cost of deleting $D$ is
+\[
+\boxed{
+\Delta_D(H)=\R_S(H)-\R_{\rm full}(H)
+=\frac12\sum_{j\in D}a_j^2\bigl(1-e^{-2\mu_jH}\bigr).}
+\]
+For a single mode,
+\[
+V_j(H):=\frac12a_j^2(1-e^{-2\mu_jH})
+\le \min\left\{H\mu_ja_j^2,\frac12a_j^2\right\},
+\]
+and as $\mu_jH\downarrow0$,
+\[
+V_j(H)=H\mu_ja_j^2+O(H^2\mu_j^2a_j^2).
+\]
+\end{theorem}
+
+\begin{proof}
+Each full mode solves $\dot a_j=-\mu_ja_j$, hence $a_j(H)=a_je^{-\mu_jH}$. Under the projected flow this remains true for $j\in S$, while $a_j$ is constant for $j\in D$. Orthogonality gives the risk formulas and their difference. The upper bound uses $1-e^{-x}\le\min\{x,1\}$ and the expansion follows from Taylor's theorem.
+\end{proof}
+
+This theorem corrects a common intuition. Small eigenvalues do not literally slow every other continuous-time mode. They are themselves slow, and they may waste compute; they affect global optimization rates only when the algorithm or guarantee depends on the least active curvature.
+
+\subsection{An exact value-per-compute oracle}
+Assign mode $j$ a risk-equivalent compute price $c_j\ge0$ per unit time. Over a horizon $H$, consider
+\[
+\mathcal J_H(S)=\R_S(H)+H\sum_{j\in S}c_j.
+\]
+
+\begin{corollary}[Oracle active set]\label{cor:value-compute}
+Under the assumptions of Theorem~\ref{thm:fixed-value}, an optimal active set is obtained independently mode by mode:
+\[
+\boxed{j\in S_H^\star\quad\Longleftrightarrow\quad V_j(H)>Hc_j,}
+\]
+with either decision admissible at equality. For $\mu_jH\ll1$, the criterion reduces to
+\[
+\mu_ja_j^2\gtrsim c_j.
+\]
+\end{corollary}
+
+\begin{proof}
+The objective is a sum of modewise terms plus constants. Keeping $j$ decreases terminal risk by $V_j(H)$ and costs $Hc_j$.
+\end{proof}
+
+\section{Optimization consequence of truncation}
+Consider the fixed linearized quadratic problem restricted to a kept set $S$ with
+\[
+0<\mu_{\min,S}\le\mu_j\le\mu_{\max,S}.
+\]
+
+\begin{proposition}[Conditioning of the active problem]\label{prop:conditioning}
+Gradient descent on the kept quadratic subproblem with scalar step
+\[
+\eta_S^\star=\frac{2}{\mu_{\max,S}+\mu_{\min,S}}
+\]
+has worst-case contraction factor
+\[
+\rho_S=\frac{\kappa_S-1}{\kappa_S+1},
+\qquad
+\kappa_S=\frac{\mu_{\max,S}}{\mu_{\min,S}}.
+\]
+Removing a tail below a threshold $\tau$ guarantees $\mu_{\min,S}\ge\tau$ and therefore improves this condition-number bound whenever the removed tail determined the previous minimum eigenvalue.
+\end{proposition}
+
+\begin{proof}
+On each kept mode the error multiplier is $1-\eta\mu_j$. Minimizing the maximum absolute multiplier over the interval $[\mu_{\min,S},\mu_{\max,S}]$ equalizes the two endpoint magnitudes, yielding the stated step and factor.
+\end{proof}
+
+\begin{remark}
+This is a statement about the conditioned active problem, not a universal promise that pruning accelerates dense gradient descent. If the same stable step is used in full and reduced models, deleting a weak mode does not make an unrelated large-$\mu$ mode decay faster. Practical acceleration requires either fewer structural FLOPs, a step/preconditioner that exploits the improved active spectrum, or both.
+\end{remark}
+
+\section{Finite-sample statistical value of deleting a mode}
+The second possible gain is statistical rather than purely computational. In the Gaussian sequence model, observe
+\[
+z_j=a_j+\frac{\sigma}{\sqrt n}\xi_j,
+\qquad \xi_j\sim N(0,1),
+\]
+and use ridge filter $q_\lambda(\mu)=\mu/(\mu+\lambda)$. The risk contribution of an active mode is
+\[
+R_j^{\rm keep}
+=\left(\frac{\lambda}{\mu_j+\lambda}\right)^2a_j^2
++\frac{\sigma^2}{n}\left(\frac{\mu_j}{\mu_j+\lambda}\right)^2.
+\]
+Dropping the mode sets its estimate to zero and gives $R_j^{\rm drop}=a_j^2$.
+
+\begin{theorem}[Exact finite-sample drop criterion]\label{thm:sequence-drop}
+For $\mu_j>0$,
+\[
+\boxed{
+R_j^{\rm drop}-R_j^{\rm keep}
+=
+\frac{\mu_j}{(\mu_j+\lambda)^2}
+\left[a_j^2(\mu_j+2\lambda)-\frac{\sigma^2}{n}\mu_j\right].}
+\]
+Hence dropping the mode improves conditional sequence risk exactly when
+\[
+\boxed{
+a_j^2(\mu_j+2\lambda)<\frac{\sigma^2}{n}\mu_j.}
+\]
+At $\lambda=0$, this becomes $a_j^2<\sigma^2/n$.
+\end{theorem}
+
+\begin{proof}
+Subtract the two displayed risks and use
+\[
+1-\frac{\lambda^2}{(\mu+\lambda)^2}
+=\frac{\mu(\mu+2\lambda)}{(\mu+\lambda)^2}.
+\]
+\end{proof}
+
+Thus nuisance directions can be harmful even if they are learnable: they may contribute less target signal than sampling variance. This is distinct from the finite-horizon optimization value in Theorem~\ref{thm:fixed-value}; both should enter a compute-aware decision.

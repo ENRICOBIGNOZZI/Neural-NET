@@ -1,0 +1,82 @@
+\section{When temporary overparameterization can pay for itself}
+The previous compute-to-accuracy result asks whether a contraction is beneficial relative to continuing the same wide state. A harder question is the one relevant for the claim that a network should \emph{learn wide and then become small}: why not train the final compact architecture from the beginning? The answer cannot be ``because contraction is safe.'' Safety only says that little is lost at the contraction event. Temporary width is useful at equal compute only if the wide phase creates a sufficiently better compact state to repay the compute spent while wide.
+
+Fix a wide architecture $W$ and a realizable compact architecture $r$, with per-update costs $C_W\ge C_r>0$. Starting from a common target-free initialization rule, let
+\[
+R_{W\to r}(t,H)
+\]
+denote the risk obtained by training the wide model for $t$ updates, structurally contracting it to architecture $r$, and then training the compact model for another $H$ updates. Let $R_r(k)$ denote the risk of the compact-from-start control after $k$ updates. Define the equal-compute compact budget
+\[
+N_r(t,H)
+:=
+\left\lceil\frac{C_Wt+C_rH}{C_r}\right\rceil,
+\qquad
+K(t,H):=t+H.
+\]
+The ceiling weakly favors the compact control and can be dropped when the compute ratio is exact.
+
+\begin{definition}[Discovery advantage and compute opportunity gain]
+Define
+\[
+D_r(t,H)
+:=R_r(K(t,H))-R_{W\to r}(t,H)
+\]
+and
+\[
+O_r(t,H)
+:=R_r(K(t,H))-R_r(N_r(t,H)).
+\]
+$D_r$ measures how much better the state produced by temporary width is than the compact-from-start state at the \emph{same update count}. It includes every useful effect of temporary overparameterization---representation discovery, optimization-path selection, conditioning, and initialization amplification---after both paths have been expressed in the same final architecture. $O_r$ measures how much the compact control gains from the additional updates it can buy with the compute that the wide phase consumed.
+\end{definition}
+
+\begin{theorem}[Exact break-even identity]\label{thm:temporary-width-break-even}
+For every $t,H\ge0$,
+\[
+\boxed{
+R_{W\to r}(t,H)-R_r(N_r(t,H))
+=
+O_r(t,H)-D_r(t,H).}
+\]
+Consequently, temporary overparameterization wins the equal-compute comparison if and only if
+\[
+\boxed{D_r(t,H)>O_r(t,H).}
+\]
+If $R_r(k)$ is nonincreasing in $k$ and $C_W\ge C_r$, then $O_r(t,H)\ge0$. In that case $D_r(t,H)>0$ is a necessary condition for any equal-compute advantage.
+\end{theorem}
+
+\begin{proof}
+Add and subtract $R_r(K(t,H))$:
+\begin{align*}
+R_{W\to r}(t,H)-R_r(N_r(t,H))
+&=
+\bigl[R_{W\to r}(t,H)-R_r(K(t,H))\bigr]\\
+&\quad+
+\bigl[R_r(K(t,H))-R_r(N_r(t,H))\bigr]\\
+&=-D_r(t,H)+O_r(t,H).
+\end{align*}
+The first equivalence follows immediately. Moreover $C_W\ge C_r$ implies $N_r(t,H)\ge K(t,H)$; monotonicity of the compact risk then gives $R_r(K)\ge R_r(N_r)$ and hence $O_r\ge0$.
+\end{proof}
+
+\begin{corollary}[Safe contraction is not enough]\label{cor:safety-not-enough}
+Suppose the structural contraction at time $t$ has arbitrarily small finite-horizon damage relative to continuing the wide model. This fact alone places no sign restriction on $D_r(t,H)$ and therefore cannot imply an equal-compute advantage over compact-from-start. In particular, if $D_r(t,H)\le0$ and compact risk is nonincreasing, temporary overparameterization cannot win at equal compute.
+\end{corollary}
+
+\begin{proof}
+The contraction-damage comparison uses a continuation of the checkpointed wide state as its reference, whereas $D_r$ compares against an independently trained compact path. These are different counterfactuals. The final statement follows from Theorem~\ref{thm:temporary-width-break-even} because $O_r\ge0$.
+\end{proof}
+
+\begin{remark}[The empirical decomposition that should be reported]
+An equal-compute experiment should report all three quantities
+\[
+R_{W\to r}(t,H)-R_r(K),
+\qquad
+O_r(t,H),
+\qquad
+R_{W\to r}(t,H)-R_r(N_r),
+\]
+rather than only the last one. The first term reveals whether temporary width actually discovered a better compact state; the second is the price of having trained wide; the third is their net effect. This decomposition distinguishes a failed discovery mechanism from a useful discovery mechanism that is simply too expensive.
+\end{remark}
+
+\begin{remark}[Research consequence]
+The break-even theorem changes the role of the controller. A safe-pruning certificate determines when one \emph{may} contract. A useful learn-wide-then-shrink algorithm needs an additional economic gate: estimated discovery advantage must be large enough to have justified the historical wide-phase compute, or, prospectively, the expected future discovery value of remaining wide must exceed its incremental compute price. This is stronger than spectral truncation and stronger than phase separation alone.
+\end{remark}
