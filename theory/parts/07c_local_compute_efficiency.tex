@@ -1,0 +1,130 @@
+\section{A local compute-efficiency threshold}
+The break-even identity is retrospective: it asks whether the wide phase has already created enough discovery advantage to repay its historical compute. For an online controller we also need a prospective question: starting from the same current predictor, is the next infinitesimal unit of compute better spent in the wide parameter space or in a reduced subspace? In the ideal spectral model this comparison is exact and produces a dimensionless threshold.
+
+Let $g=\nabla_\theta\R(\theta)$ at the current checkpoint and let $Q$ be an orthogonal projector onto the parameter directions retained by a candidate contraction. Consider two continuous-time updates starting from the same parameter point,
+\[
+\dot\theta_W=-g(\theta_W),
+\qquad
+\dot\theta_Q=-Q g(\theta_Q).
+\]
+Suppose one unit of gradient-flow time costs $C_W$ for the full update and $C_Q$ for the projected update, with $0<C_Q\le C_W$. Parameterize both trajectories by cumulative compute $b$, so that an increment $db$ corresponds locally to $db/C_W$ units of wide flow or $db/C_Q$ units of projected flow.
+
+\begin{theorem}[Exact infinitesimal value per unit compute]\label{thm:local-compute-efficiency}
+At the common checkpoint,
+\[
+\left.\frac{d}{db}\R(\theta_W(b))\right|_{b=0}
+=-\frac{\norm{g}^2}{C_W},
+\qquad
+\left.\frac{d}{db}\R(\theta_Q(b))\right|_{b=0}
+=-\frac{\norm{Qg}^2}{C_Q}.
+\]
+Therefore the reduced update has strictly larger instantaneous risk decrease per unit compute if and only if
+\[
+\boxed{
+\frac{\norm{Qg}^2}{C_Q}
+>
+\frac{\norm{g}^2}{C_W}.}
+\]
+Writing
+\[
+A_S:=\norm{Qg}^2,
+\qquad
+A_D:=\norm{(I-Q)g}^2,
+\qquad
+A=A_S+A_D,
+\]
+this condition is equivalently
+\[
+\boxed{
+A_D
+<
+\left(\frac{C_W}{C_Q}-1\right)A_S,}
+\]
+or, whenever $A>0$,
+\[
+\boxed{
+\frac{A_D}{A}
+<
+1-\frac{C_Q}{C_W}.}
+\]
+Thus the fraction of instantaneous gradient-descent power discarded by contraction must be smaller than the fraction of per-update compute saved.
+\end{theorem}
+
+\begin{proof}
+Along ordinary gradient flow,
+\[
+\frac{d}{ds}\R(\theta_W(s))
+=
+\ip{g}{-g}
+=-\norm{g}^2.
+\]
+Since $s=b/C_W$, the chain rule gives the first derivative. Along the projected flow,
+\[
+\frac{d}{ds}\R(\theta_Q(s))
+=
+\ip{g}{-Qg}
+=-\norm{Qg}^2,
+\]
+because $Q$ is an orthogonal projector; reparameterizing by $s=b/C_Q$ gives the second derivative. Since $Q$ and $I-Q$ have orthogonal ranges,
+$\norm{g}^2=A_S+A_D$. The reduced update is locally more compute-efficient exactly when
+$A_S/C_Q>(A_S+A_D)/C_W$. Rearranging gives the second boxed inequality. Dividing by $A$ gives the last one.
+\end{proof}
+
+\begin{corollary}[Target-weighted spectral form]\label{cor:local-compute-spectral}
+Let $J=U\Sigma V^\ast$, let $\mu_j$ be the positive eigenvalues of $JJ^\ast$, and let $a_j=\ip{e}{u_j}$. If $Q$ retains the right singular directions indexed by $S$ and drops $D=S^c$, then
+\[
+A_S=\sum_{j\in S}\mu_j a_j^2,
+\qquad
+A_D=\sum_{j\in D}\mu_j a_j^2.
+\]
+Consequently the candidate is instantaneously more efficient per unit compute if and only if
+\[
+\boxed{
+\frac{\sum_{j\in D}\mu_j a_j^2}
+{\sum_j\mu_j a_j^2}
+<
+1-\frac{C_Q}{C_W}.}
+\]
+\end{corollary}
+
+\begin{proof}
+The modal gradient identity gives
+$g=J^\ast e=\sum_j\sqrt{\mu_j}a_jv_j$.
+Orthogonality of the $v_j$ yields the two energy sums. Apply Theorem~\ref{thm:local-compute-efficiency}.
+\end{proof}
+
+\begin{remark}[Why this is not yet a pruning theorem]
+The inequality above answers only the next-infinitesimal-compute question. It does not control the structural jump produced by a physical contraction, the approximation floor created by permanently deleting target mass, or the possibility that currently weak directions later become target-relevant because the Jacobian rotates. Those are controlled by the structural-transfer, finite-horizon, and future-discovery certificates developed elsewhere in this note. The useful interpretation is therefore not ``prune whenever the inequality holds,'' but rather: among candidates that are already statistically and geometrically safe, reject any contraction that cannot even beat the wide model in instantaneous risk decrease per unit compute.
+\end{remark}
+
+\begin{remark}[A dimensionless onset statistic]
+Define the omitted descent-power fraction
+\[
+\omega_D(t):=
+\frac{\norm{(I-Q_t)\nabla\R(\theta_t)}^2}
+{\norm{\nabla\R(\theta_t)}^2}
+\]
+and the structural compute-saving fraction
+\[
+s_C(t):=1-\frac{C_{Q_t}}{C_W}.
+\]
+The local compute gate is simply $\omega_D(t)<s_C(t)$. Both sides are dimensionless. The left side is target-weighted prediction geometry; the right side is a property of the actual structural implementation. This is the cleanest local bridge between the spectral theory and physical compute.
+\end{remark}
+
+\begin{corollary}[First-order break-even over a small compute budget]\label{cor:local-break-even}
+Assume the two trajectories above are differentiable in compute at $b=0$. For a small equal-compute budget $B>0$,
+\[
+\R(\theta_Q(B))-\R(\theta_W(B))
+=
+B\left(
+\frac{\norm{g}^2}{C_W}
+-
+\frac{\norm{Qg}^2}{C_Q}
+\right)+o(B).
+\]
+Hence the sign in Theorem~\ref{thm:local-compute-efficiency} is the exact first-order sign of the equal-compute risk difference.
+\end{corollary}
+
+\begin{proof}
+Apply the first-order Taylor expansion in the common compute parameter $b$ to both risk trajectories and subtract.
+\end{proof}
