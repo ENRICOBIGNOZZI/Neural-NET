@@ -12,8 +12,28 @@ from neural_net.rank_factor import (
 )
 
 
-def test_physical_rank_contraction_matches_zero_scale_embedding():
+def test_canonicalization_preserves_weight_and_fixes_component_gauge():
     torch.manual_seed(0)
+    layer = RankFactorLinear(5, 4, 4)
+    with torch.no_grad():
+        layer.left[:, 0].mul_(3.0)
+        layer.scale[0].div_(3.0)
+        layer.right[1, :].mul_(0.2)
+        layer.scale[1].div_(0.2)
+    weight_before = layer.effective_weight().detach().clone()
+    invariant_before = layer.component_frobenius_norms().detach().clone()
+
+    layer.canonicalize_()
+
+    assert torch.allclose(layer.effective_weight(), weight_before, atol=1e-7, rtol=1e-6)
+    assert torch.allclose(layer.component_frobenius_norms(), invariant_before, atol=1e-7, rtol=1e-6)
+    assert torch.allclose(torch.linalg.vector_norm(layer.left, dim=0), torch.ones(layer.rank), atol=1e-6)
+    assert torch.allclose(torch.linalg.vector_norm(layer.right, dim=1), torch.ones(layer.rank), atol=1e-6)
+    assert torch.allclose(layer.scale.abs(), invariant_before, atol=1e-6, rtol=1e-6)
+
+
+def test_physical_rank_contraction_matches_zero_scale_embedding():
+    torch.manual_seed(1)
     layer = RankFactorLinear(5, 4, 4)
     x = torch.randn(7, 5)
     keep = torch.tensor([0, 2])
@@ -28,7 +48,7 @@ def test_physical_rank_contraction_matches_zero_scale_embedding():
 
 
 def test_kept_gradients_match_between_ghost_and_compact_parameterizations():
-    torch.manual_seed(1)
+    torch.manual_seed(2)
     layer = RankFactorLinear(3, 2, 4)
     keep = torch.tensor([0, 3])
     drop = torch.tensor([1, 2])
@@ -48,7 +68,7 @@ def test_kept_gradients_match_between_ghost_and_compact_parameterizations():
 
 
 def test_group_gradient_energy_is_exact_parameter_group_norm():
-    torch.manual_seed(2)
+    torch.manual_seed(3)
     layer = RankFactorLinear(4, 3, 5)
     x = torch.randn(6, 4)
     loss = layer(x).square().mean()
@@ -75,7 +95,7 @@ def test_rank_contraction_reduces_physical_parameter_count():
 
 
 def test_rank_contractible_mlp_compact_copy_has_same_output_as_zeroed_rank_components():
-    torch.manual_seed(3)
+    torch.manual_seed(4)
     model = RankContractibleMLP(input_dim=4, width1=6, width2=5, rank=4)
     keep = torch.tensor([0, 2])
     drop = torch.tensor([1, 3])

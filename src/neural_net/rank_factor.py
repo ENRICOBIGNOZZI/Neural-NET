@@ -16,11 +16,12 @@ class RankFactorLinear(nn.Module):
     A component can be removed physically by deleting one column of ``left``, the
     matching scalar in ``scale``, and one row of ``right``.  In the full parameter
     space the same compact model has an exact ghost embedding obtained by setting
-    the deleted scales to zero while keeping their left/right vectors fixed.  This
-    makes the contraction jump depend only on the deleted scales in that embedding.
+    the deleted scales to zero while keeping their left/right vectors fixed.
 
-    The factors are not claimed to be singular vectors unless an additional
-    orthogonality constraint is imposed.  They are structural rank-one components.
+    The factors are structural rank-one components, not singular vectors.  The
+    parameterization has a scale gauge; ``canonicalize_`` removes that gauge at a
+    checkpoint by making the active left columns and right rows unit norm while
+    absorbing their norms into ``scale`` without changing the represented matrix.
     """
 
     def __init__(
@@ -48,12 +49,12 @@ class RankFactorLinear(nn.Module):
         self.reset_parameters()
 
     def reset_parameters(self) -> None:
-        # Keep the product scale comparable to an ordinary Linear initialization.
         nn.init.normal_(self.left, mean=0.0, std=self.out_features ** -0.5)
         nn.init.normal_(self.right, mean=0.0, std=self.in_features ** -0.5)
         nn.init.ones_(self.scale)
         if self.bias is not None:
             nn.init.zeros_(self.bias)
+        self.canonicalize_()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         latent = x @ self.right.t()
@@ -65,6 +66,36 @@ class RankFactorLinear(nn.Module):
 
     def effective_weight(self) -> torch.Tensor:
         return (self.left * self.scale.unsqueeze(0)) @ self.right
+
+    def component_frobenius_norms(self) -> torch.Tensor:
+        """Gauge-invariant Frobenius norm of each represented rank-one term."""
+        left_norm = torch.linalg.vector_norm(self.left, dim=0)
+        right_norm = torch.linalg.vector_norm(self.right, dim=1)
+        return self.scale.abs() * left_norm * right_norm
+
+    @torch.no_grad()
+    def canonicalize_(self, eps: float = 1e-12) -> "RankFactorLinear":
+        """Fix the scale gauge without changing the represented affine map.
+
+        For every nondegenerate component, absorb ``||left_q|| ||right_q||`` into
+        ``scale_q`` and normalize the two direction factors.  Afterward
+        ``abs(scale_q)`` equals the component Frobenius norm.  Degenerate components
+        already represent zero and are assigned zero scale.
+        """
+        if eps <= 0:
+            raise ValueError("eps must be positive")
+        left_norm = torch.linalg.vector_norm(self.left, dim=0)
+        right_norm = torch.linalg.vector_norm(self.right, dim=1)
+        active = (left_norm > eps) & (right_norm > eps)
+        multiplier = left_norm * right_norm
+
+        if torch.any(active):
+            self.scale[active].mul_(multiplier[active])
+            self.left[:, active].div_(left_norm[active].unsqueeze(0))
+            self.right[active, :].div_(right_norm[active].unsqueeze(1))
+        if torch.any(~active):
+            self.scale[~active].zero_()
+        return self
 
     def contracted_copy(self, keep_indices) -> "RankFactorLinear":
         idx = torch.as_tensor(keep_indices, dtype=torch.long, device=self.scale.device)
@@ -105,7 +136,7 @@ class RankFactorLinear(nn.Module):
 
 
 def deleted_scale_norm(layer: RankFactorLinear, drop_indices) -> float:
-    """Parameter jump of the exact ghost embedding: ||scale_D||_2."""
+    """Parameter jump of the ghost embedding in the current gauge: ||scale_D||_2."""
     idx = torch.as_tensor(drop_indices, dtype=torch.long, device=layer.scale.device)
     if idx.numel() == 0:
         return 0.0
@@ -117,7 +148,8 @@ def rank_factor_group_gradient_energy(layer: RankFactorLinear) -> torch.Tensor:
 
     Group q contains ``left[:, q]``, ``scale[q]``, and ``right[q, :]``.  The
     returned vector therefore sums to the gradient energy of all rank-factor
-    parameters (excluding the shared bias).
+    parameters (excluding the shared bias).  Evaluate this after canonicalizing a
+    checkpoint when a gauge-fixed structural diagnostic is desired.
     """
     if layer.left.grad is None or layer.scale.grad is None or layer.right.grad is None:
         raise ValueError("backward() must populate left, scale, and right gradients first")
@@ -161,6 +193,11 @@ class RankContractibleMLP(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.out(self.features(x)).squeeze(-1)
+
+    @torch.no_grad()
+    def canonicalize_rank_components_(self) -> "RankContractibleMLP":
+        self.hidden2.canonicalize_()
+        return self
 
     def contracted_rank_copy(self, keep_indices) -> "RankContractibleMLP":
         idx = torch.as_tensor(keep_indices, dtype=torch.long, device=self.hidden2.scale.device)

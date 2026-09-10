@@ -9,6 +9,38 @@ W=\sum_{q=1}^{r}s_q u_qv_q^\top,
 \]
 where $u_q\in\mathbb R^{d_{\rm out}}$, $v_q\in\mathbb R^{d_{\rm in}}$, and $s_q\in\mathbb R$ are trainable. No orthogonality is assumed here; the $q$'s are structural rank-one components, not automatically singular vectors. Let the remaining network parameters be denoted by $\xi$.
 
+The raw factorization has a gauge symmetry that must be fixed before scale-based structural diagnostics are interpreted. For every nonzero $c,d$,
+\[
+(s_q,u_q,v_q)
+\mapsto
+\left(\frac{s_q}{cd},cu_q,dv_q\right)
+\]
+leaves $s_qu_qv_q^\top$ unchanged. Hence raw $|s_q|$ and Euclidean parameter-gradient norms are not representation invariant.
+
+\begin{proposition}[Canonical component gauge]\label{prop:rank-gauge}
+Every nondegenerate rank-one component admits the function-preserving canonicalization
+\[
+\bar u_q=\frac{u_q}{\norm{u_q}},
+\qquad
+\bar v_q=\frac{v_q}{\norm{v_q}},
+\qquad
+\bar s_q=s_q\norm{u_q}\norm{v_q}.
+\]
+Then
+\[
+\norm{\bar u_q}=\norm{\bar v_q}=1,
+\qquad
+|\bar s_q|=\norm{s_qu_qv_q^\top}_{F}.
+\]
+Thus the magnitude of the canonical scale is the gauge-invariant Frobenius magnitude of the represented component. Canonicalization changes neither the layer matrix nor the network predictor.
+\end{proposition}
+
+\begin{proof}
+Substitution gives $\bar s_q\bar u_q\bar v_q^\top=s_qu_qv_q^\top$. The Frobenius norm of an outer product is the product of the vector norms, which gives the second identity.
+\end{proof}
+
+All scale and group-gradient diagnostics below are understood in this canonical gauge. A practical implementation can canonicalize a copied checkpoint before evaluating a candidate and reset the optimizer in both matched dense and reduced counterfactual continuations. This avoids attributing scientific meaning to an arbitrary factor scaling.
+
 For a kept set $K\subset\{1,\ldots,r\}$ and dropped set $D=K^c$, define the physical compact layer
 \[
 W_K=\sum_{q\in K}s_qu_qv_q^\top.
@@ -25,6 +57,7 @@ For every checkpoint and every kept set $K$:
 \boxed{
 d_0=\norm{s_D}_2;}
 \]
+in the chosen gauge; in the canonical gauge each $|s_q|$ is also the component Frobenius magnitude;
 \item deleting one component removes exactly $d_{\rm in}+d_{\rm out}+1$ trainable factor parameters and removes its two rank-factor matrix-vector contractions from the physical forward/backward graph.
 \end{enumerate}
 \end{theorem}
@@ -35,7 +68,7 @@ When $s_q=0$, the rank-one matrix $s_qu_qv_q^\top$ is identically zero, so remov
 
 This construction solves the structural bridge for one concrete family: rank can be reduced during training with a literal decrease in parameters and arithmetic. It does \emph{not} say that small $|s_q|$ alone makes a component useless. Target value is still required.
 
-At a checkpoint define the exact structural group-gradient energy
+At a canonicalized checkpoint define the exact structural group-gradient energy
 \[
 E_D^{\rm grp}(t)
 :=\norm{(I-S_K)g_t}^2
@@ -47,7 +80,7 @@ E_D^{\rm grp}(t)
 +\norm{\nabla_{v_q}\R_t}^2
 \right].
 \]
-Because the groups occupy orthogonal parameter coordinates, this identity is exact. It is a structural analogue of the target-weighted modal energy $\mu_ja_j^2$: it measures how much present loss-dissipation budget actually flows through the parameters that would disappear.
+Because the groups occupy orthogonal parameter coordinates, this identity is exact in the fixed canonical coordinate representation. It is a structural analogue of the target-weighted modal energy $\mu_ja_j^2$: it measures how much present loss-dissipation budget actually flows through the parameters that would disappear.
 
 \begin{theorem}[Gap-free checkpoint certificate for physical parameter groups]\label{thm:group-certificate}
 Let $S$ be any fixed coordinate/group projector representing a physically realizable contraction, and suppose on a common tube containing the dense and projected trajectories that $g$ is $L_g$-Lipschitz and $F$ is $B_{J,\mathrm{tube}}$-Lipschitz. Define
@@ -99,7 +132,7 @@ B_{J,\mathrm{tube}}e^{L_gH}
 d_0+H\sqrt{E_S(t)}+L_g\overline B_t(H)
 \right].}
 \]
-For the rank-factor contraction of Theorem~\ref{thm:rank-factor-embedding}, one may take $d_0=\norm{s_D}_2$ and $E_S(t)=E_D^{\rm grp}(t)$ exactly.
+For the canonically gauged rank-factor contraction of Theorem~\ref{thm:rank-factor-embedding}, one may take $d_0=\norm{s_D}_2$ and $E_S(t)=E_D^{\rm grp}(t)$ exactly.
 \end{theorem}
 
 \begin{proof}
@@ -130,5 +163,5 @@ The spectral checkpoint theorem and the structural-group theorem play different 
 \end{remark}
 
 \begin{remark}[The scale is not a saliency score]
-The term $\norm{s_D}_2$ controls the instantaneous embedding jump in this parameterization; it does not measure future usefulness. A component with tiny scale but large $|\partial_{s_q}\R|$ is exactly a component poised to regrow and should fail the group-gradient gate. Conversely a moderate scale can be removable after a function-preserving reparameterization or readout redistribution, but that requires a different embedding argument. The controller should therefore monitor scale, target-weighted group gradient, and finite-horizon risk jointly.
+Even in canonical gauge, the term $\norm{s_D}_2$ controls the instantaneous embedding jump; it does not measure future usefulness. A component with tiny scale but large $|\partial_{s_q}\R|$ is exactly a component poised to regrow and should fail the group-gradient gate. Conversely a moderate scale can be removable after a function-preserving reparameterization or readout redistribution, but that requires a different embedding argument. The controller should therefore monitor canonical component magnitude, target-weighted group gradient, prediction-space discovery state, and finite-horizon risk jointly.
 \end{remark}
