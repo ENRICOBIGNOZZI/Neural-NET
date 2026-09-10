@@ -90,11 +90,11 @@ class RankFactorLinear(nn.Module):
         multiplier = left_norm * right_norm
 
         if torch.any(active):
-            self.scale[active].mul_(multiplier[active])
-            self.left[:, active].div_(left_norm[active].unsqueeze(0))
-            self.right[active, :].div_(right_norm[active].unsqueeze(1))
+            self.scale[active] = self.scale[active] * multiplier[active]
+            self.left[:, active] = self.left[:, active] / left_norm[active].unsqueeze(0)
+            self.right[active, :] = self.right[active, :] / right_norm[active].unsqueeze(1)
         if torch.any(~active):
-            self.scale[~active].zero_()
+            self.scale[~active] = 0.0
         return self
 
     def contracted_copy(self, keep_indices) -> "RankFactorLinear":
